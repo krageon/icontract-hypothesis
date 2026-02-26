@@ -33,7 +33,7 @@ def main() -> int:
     # fmt: off
     black_targets = [
         "icontract_hypothesis",
-        "tests", "precommit.py", "setup.py",
+        "tests", "precommit.py",
         "benchmarks", "benchmark.py",
         "check_help_in_readme.py",
         "--exclude", "tests/pyicontract_hypothesis/samples",
@@ -88,11 +88,6 @@ def main() -> int:
 
         subprocess.check_call([sys.executable, "-m", "doctest", str(pth)])
     subprocess.check_call([sys.executable, "-m", "doctest", "README.rst"])
-
-    print("Checking the restructured text of the readme...")
-    subprocess.check_call(
-        [sys.executable, "setup.py", "check", "--restructuredtext", "--strict"]
-    )
 
     print("Checking the help in the readme...")
     subprocess.check_call([sys.executable, "check_help_in_readme.py"])

@@ -1,0 +1,43 @@
+[project]
+name = "icontract-hypothesis"
+version = "1.1.8"
+description = "Combine contracts and automatic testing"
+readme = "README.rst"
+requires-python = ">=3.13"
+dependencies = [
+    "hypothesis>=6.151.9",
+    "icontract>=2.7.3",
+]
+
+authors = [
+    {name = "Marko Ristin", email = "marko@ristin.ch"},
+    {name = "krageon", email = "icontract-hypothesis@voor.money"},
+]
+
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Framework :: Hypothesis",
+]
+license = "MIT"
+keywords = ["design-by-contract","contracts","automatic","testing","property-based"]
+
+[project.scripts]
+pyicontract-hypothesis = "icontract_hypothesis.pyicontract_hypothesis.main:entry_point"
+
+[dependency-groups]
+dev = [
+    "black==22.3.0",
+    "mypy==0.902",
+    "pylint==2.3.1",
+    "pydocstyle>=2.1.1,<3",
+    "coverage>=4.5.1,<5",
+    "docutils>=0.14,<1",
+    "pygments>=2,<3",
+    'tabulate==0.8.7',
+    'py-cpuinfo>=5,<6',
+    "pytest",
+]

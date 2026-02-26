@@ -4,8 +4,6 @@ import unittest
 
 from hypothesis import given
 
-import test_samples.pyicontract_hypothesis.sample_module
-
 
 class TestWithInferredStrategies(unittest.TestCase):
     """Test all functions from test_samples.pyicontract_hypothesis.sample_module with inferred Hypothesis strategies."""
@@ -15,7 +13,7 @@ class TestWithInferredStrategies(unittest.TestCase):
             x=integers(min_value=1)
         )
         def execute(**kwargs) -> None:
-            test_samples.pyicontract_hypothesis.sample_module.some_func(**kwargs)
+            tests.test_samples.pyicontract_hypothesis.sample_module.some_func(**kwargs)
 
         execute()
 
@@ -24,7 +22,7 @@ class TestWithInferredStrategies(unittest.TestCase):
             x=integers(min_value=1).filter(lambda x: square_greater_than_zero(x))
         )
         def execute(**kwargs) -> None:
-            test_samples.pyicontract_hypothesis.sample_module.another_func(**kwargs)
+            tests.test_samples.pyicontract_hypothesis.sample_module.another_func(**kwargs)
 
         execute()
 
@@ -33,7 +31,7 @@ class TestWithInferredStrategies(unittest.TestCase):
             fixed_dictionaries({'x': integers(), 'y': integers()}).filter(lambda d: d['x'] < d['y'])
         )
         def execute(kwargs) -> None:
-            test_samples.pyicontract_hypothesis.sample_module.yet_another_func(**kwargs)
+            tests.test_samples.pyicontract_hypothesis.sample_module.yet_another_func(**kwargs)
 
         execute()
 

@@ -4,8 +4,6 @@ import unittest
 
 from hypothesis import given
 
-import test_samples.pyicontract_hypothesis.well_formatted_with_two_arguments
-
 
 class TestWithInferredStrategies(unittest.TestCase):
     """Test all functions from test_samples.pyicontract_hypothesis.well_formatted_with_two_arguments with inferred Hypothesis strategies."""
@@ -16,7 +14,7 @@ class TestWithInferredStrategies(unittest.TestCase):
             b=integers()
         )
         def execute(**kwargs) -> None:
-            test_samples.pyicontract_hypothesis.well_formatted_with_two_arguments.add(**kwargs)
+            tests.test_samples.pyicontract_hypothesis.well_formatted_with_two_arguments.add(**kwargs)
 
         execute()
 

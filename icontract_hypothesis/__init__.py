@@ -1545,9 +1545,9 @@ def _hook_into_icontract_and_hypothesis() -> None:
     # strategy classes just for this functionality.
     # See https://github.com/HypothesisWorks/hypothesis/issues/2713
     upstream_extract_lambda_source = (
-        hypothesis.internal.reflection.extract_lambda_source
+        hypothesis.internal.reflection.lambda_sources.lambda_description
     )
-    hypothesis.internal.reflection.extract_lambda_source = lambda f: (
+    hypothesis.internal.reflection.lambda_sources.lambda_description = lambda f: (
         getattr(f, "__icontract_hypothesis_source_code__", None)
         or upstream_extract_lambda_source(f)  # type: ignore
     )

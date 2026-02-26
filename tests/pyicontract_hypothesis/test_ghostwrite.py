@@ -9,7 +9,8 @@ import sys
 import tempfile
 import unittest
 
-from icontract_hypothesis.pyicontract_hypothesis import _general, _ghostwrite, main
+from icontract_hypothesis.pyicontract_hypothesis import _general, main
+from src.icontract_hypothesis.pyicontract_hypothesis import _ghostwrite
 
 
 class TestParsingOfParameters(unittest.TestCase):

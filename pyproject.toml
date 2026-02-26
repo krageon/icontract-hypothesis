@@ -23,6 +23,9 @@ classifiers = [
     "Framework :: Hypothesis",
 ]
 license = "MIT"
+license-files = [
+    "LICENSE*",
+]
 keywords = ["design-by-contract","contracts","automatic","testing","property-based"]
 
 [project.scripts]
@@ -41,3 +44,7 @@ dev = [
     'py-cpuinfo>=5,<6',
     "pytest",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"

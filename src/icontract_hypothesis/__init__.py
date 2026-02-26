@@ -73,9 +73,8 @@ def make_assume_preconditions(func: CallableT) -> Callable[..., None]:
 
     Here is an example test case which tests a function ``some_func``:
 
-    >>> import unittest
+    >>> from src import icontract_hypothesis    >>> import unittest
     >>> import hypothesis.strategies as st
-    >>> import icontract_hypothesis
     >>> import icontract
 
     >>> @icontract.require(lambda x: x > 0)
@@ -1245,9 +1244,7 @@ def infer_strategy(
 
     Here is an example how you can debug what strategies will be used to test ``some_func``:
 
-    >>> import icontract
-    >>> import icontract_hypothesis
-
+    >>> from src import icontract_hypothesis    >>> import icontract
     >>> @icontract.require(lambda x: x > 0)
     ... def some_func(x: int) -> None:
     ...    ...
@@ -1418,10 +1415,8 @@ def test_with_inferred_strategy(
 
     Here is an example test case which tests a function ``some_func``:
 
-    >>> import unittest
+    >>> from src import icontract_hypothesis    >>> import unittest
     >>> import icontract
-    >>> import icontract_hypothesis
-
     >>> @icontract.require(lambda x: x > 0)
     ... @icontract.require(lambda x: x < 100)
     ... @icontract.require(lambda y: 0 < y < 100)

@@ -10,7 +10,7 @@ import textwrap
 from typing import List, Optional, Tuple, TextIO, Union, NoReturn
 
 import icontract_hypothesis.pyicontract_hypothesis._general as _general
-import icontract_hypothesis.pyicontract_hypothesis._ghostwrite as _ghostwrite
+import src.icontract_hypothesis.pyicontract_hypothesis._ghostwrite as _ghostwrite
 import icontract_hypothesis.pyicontract_hypothesis._test as _test
 
 

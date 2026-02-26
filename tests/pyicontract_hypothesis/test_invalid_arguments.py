@@ -1,7 +1,7 @@
 import io
 import unittest
 
-from icontract_hypothesis.pyicontract_hypothesis import main
+from src.icontract_hypothesis import main
 
 
 class TestParsingOfParameters(unittest.TestCase):

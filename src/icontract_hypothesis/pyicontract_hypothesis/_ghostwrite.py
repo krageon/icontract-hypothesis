@@ -1,4 +1,5 @@
 """Provide functionality for ghostwriting test modules."""
+
 import argparse
 import enum
 import inspect
@@ -68,9 +69,7 @@ def parse_params(args: argparse.Namespace) -> Tuple[Optional[Params], List[str]]
 
 
 @overload
-def _indent_but_first(
-    lines: List[str], level: int = 1
-) -> List[str]:  # pylint: disable=all
+def _indent_but_first(lines: List[str], level: int = 1) -> List[str]:  # pylint: disable=all
     ...
 
 
@@ -141,10 +140,10 @@ def _ghostwrite_condition_code(condition: Callable[..., Any]) -> str:
         decorator_inspection=decorator_inspection
     )
 
-    assert (
-        lambda_inspection is not None
-    ), "Expected lambda_inspection to be non-None if is_lambda is True on: {}".format(
-        condition
+    assert lambda_inspection is not None, (
+        "Expected lambda_inspection to be non-None if is_lambda is True on: {}".format(
+            condition
+        )
     )
 
     return lambda_inspection.text
@@ -166,9 +165,9 @@ def _ghostwrite_test_function(
     if not explicit:
         test_func = textwrap.dedent(
             f"""\
-            def test_{point.func.__name__}(self) -> None:
+            def test_{point.func_name}(self) -> None:
                 icontract_hypothesis.test_with_inferred_strategy(
-                    {module_name}.{point.func.__name__})
+                    {module_name}.{point.func_name})
             """
         ).strip()
         return test_func, []
@@ -178,7 +177,7 @@ def _ghostwrite_test_function(
     except Exception as err:
         return "", [
             f"Failed to infer a search strategy for the function "
-            f"on line {point.first_row}: {point.func.__name__}. "
+            f"on line {point.first_row}: {point.func_name}. "
             f"The exception was:\n{err}"
         ]
 
@@ -190,24 +189,17 @@ def _ghostwrite_test_function(
         isinstance(strategy, hypothesis.strategies._internal.lazy.LazyStrategy)
         and isinstance(
             strategy.wrapped_strategy,
-            hypothesis.strategies._internal.collections.FixedKeysDictStrategy,
+            hypothesis.strategies._internal.collections.FixedDictStrategy,
         )
-        and len(strategy.wrapped_strategy.keys) > 0
+        and len(strategy.wrapped_strategy.mapping.keys()) > 0
     ):
         arguments_unpacked = True
 
         fixed_dict_st = strategy.wrapped_strategy
 
-        assert isinstance(
-            fixed_dict_st.mapped_strategy,
-            hypothesis.strategies._internal.collections.TupleStrategy,
-        )
-
         given_args_lines = []  # type: List[str]
 
-        for arg_name, arg_strategy in zip(
-            fixed_dict_st.keys, fixed_dict_st.mapped_strategy.element_strategies
-        ):
+        for arg_name, arg_strategy in fixed_dict_st.mapping.items():
             line = f"{arg_name}={arg_strategy}"
             assert not line.endswith("\n")
             given_args_lines.append(line)
@@ -226,9 +218,9 @@ def _ghostwrite_test_function(
             )"""
         )
 
-    assert not re.match(
-        r"^\s", given
-    ), f"Unexpected whitespace at the begining of given: {given!r}"
+    assert not re.match(r"^\s", given), (
+        f"Unexpected whitespace at the begining of given: {given!r}"
+    )
     assert not given.endswith("\n")
 
     test_func = textwrap.dedent(
@@ -303,9 +295,7 @@ def _ghostwrite_for_function_points(
                 class TestWithInferredStrategies(unittest.TestCase):
                     """Test all functions from {0} with inferred Hypothesis strategies."""
                     # Either there are no functions in {0} or all the functions were excluded.
-                '''.format(
-                    module_name
-                )
+                '''.format(module_name)
             ).strip()
         )
     else:

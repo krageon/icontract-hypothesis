@@ -1,4 +1,5 @@
 """Provide functions common to all the commands."""
+
 import argparse
 import importlib
 import importlib.machinery
@@ -178,6 +179,11 @@ class FunctionPoint:
         self.first_row = first_row
         self.last_row = last_row
         self.func = func
+        self.func_name = (
+            getattr(func, "__qualname__", None)
+            or getattr(func, "__name__", None)
+            or type(func).__name__
+        )
 
 
 def _overlap(first: int, last: int, another_first: int, another_last: int) -> bool:

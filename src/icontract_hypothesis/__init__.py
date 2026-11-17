@@ -278,7 +278,6 @@ def _infer_min_max_from_node(
             and node.comparators[0].id == arg_name
             and _no_name_in_descendants(root=node.comparators[1], name=arg_name)
         ):
-
             left_value, recomputed = _recompute(condition=condition, node=node.left)
 
             # If we can not recompute the left value, we also can not infer the bounds.
@@ -340,10 +339,10 @@ def _body_node_from_condition(condition: Callable[..., Any]) -> Optional[ast.exp
         decorator_inspection=decorator_inspection
     )
 
-    assert (
-        lambda_inspection is not None
-    ), "Expected lambda_inspection to be non-None if _is_lambda is True on: {}".format(
-        condition
+    assert lambda_inspection is not None, (
+        "Expected lambda_inspection to be non-None if _is_lambda is True on: {}".format(
+            condition
+        )
     )
 
     body_node = lambda_inspection.node.body
@@ -452,9 +451,7 @@ def _make_strategy_with_min_max_for_type(
             max_value -= 1
 
         if min_value is not None and min_value == max_value:
-            strategy = hypothesis.strategies.just(
-                min_value
-            )  # type: hypothesis.strategies.SearchStrategy[Any]
+            strategy = hypothesis.strategies.just(min_value)  # type: hypothesis.strategies.SearchStrategy[Any]
         else:
             strategy = hypothesis.strategies.integers(
                 min_value=min_value,
@@ -654,9 +651,9 @@ def _infer_regexp_from_condition(
                 if not recomputed:
                     return None
 
-                assert (
-                    keyword.arg is not None
-                ), "Unexpected missing arg for a keyword: {}".format(ast.dump(keyword))
+                assert keyword.arg is not None, (
+                    "Unexpected missing arg for a keyword: {}".format(ast.dump(keyword))
+                )
                 kwargs[keyword.arg] = value
 
             pattern = re.compile(*args, **kwargs)
@@ -710,10 +707,12 @@ def _infer_str_strategy_from_preconditions(
 
 
 @icontract.require(
-    lambda arg_name, contracts: contracts is None
-    or all(
-        len(contract.condition_args) == 1 and contract.condition_args[0] == arg_name
-        for contract in contracts
+    lambda arg_name, contracts: (
+        contracts is None
+        or all(
+            len(contract.condition_args) == 1 and contract.condition_args[0] == arg_name
+            for contract in contracts
+        )
     )
 )
 def _infer_strategy_for_argument(
@@ -1520,7 +1519,10 @@ def _register_with_hypothesis(cls: Type[T]) -> None:
     pack.__icontract_hypothesis_source_code__ = pack_repr  # type: ignore
 
     strategy = strategy.map(pack=pack)
-    hypothesis.strategies.register_type_strategy(custom_type=cls, strategy=strategy)
+    hypothesis.strategies.register_type_strategy(
+        custom_type=cls,
+        strategy=lambda _: strategy,
+    )
 
 
 def _hook_into_icontract_and_hypothesis() -> None:

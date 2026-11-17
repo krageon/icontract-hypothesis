@@ -12,33 +12,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: ["3.8", "3.14"]
 
     steps:
       - uses: actions/checkout@master
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          pip3 install --upgrade coveralls
-          pip3 install -e .[dev]
-
-      - name: Install missing type stubs for mypy
-        if: matrix.python-version == 3.6
-        run: pip3 install types-dataclasses
+          uv sync
+          uv pip install coveralls
 
       - name: Run checks
-        run: |
-          python3 -m doctest icontract_hypothesis/__init__.py
-          python3 precommit.py
+        run: uv run python precommit.py
 
       - name: Upload Coverage
-        run: coveralls --service=github
+        run: uv run coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}

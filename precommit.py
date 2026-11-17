@@ -30,34 +30,17 @@ def main() -> int:
 
     repo_root = pathlib.Path(__file__).parent
 
-    print("Black'ing...")
-    # fmt: off
-    black_targets = [
-        "icontract_hypothesis",
-        "tests", "precommit.py", "setup.py",
-        "benchmarks", "benchmark.py",
-        "check_help_in_readme.py",
-        "--exclude", "tests/pyicontract_hypothesis/samples",
-    ]
-    # fmt: on
-
+    print("Formatting...")
     if overwrite:
-        subprocess.check_call(["black"] + black_targets, cwd=str(repo_root))
+        subprocess.check_call(["ruff", "format"], cwd=str(repo_root))
     else:
-        subprocess.check_call(["black", "--check"] + black_targets, cwd=str(repo_root))
+        subprocess.check_call(["ruff", "format", "--check"], cwd=str(repo_root))
 
-    print("Mypy'ing...")
-    mypy_targets = ["icontract_hypothesis", "tests"]
-    subprocess.check_call(["mypy", "--strict"] + mypy_targets, cwd=str(repo_root))
+    print("Linting...")
+    subprocess.check_call(["ruff", "check"], cwd=str(repo_root))
 
-    print("Pylint'ing...")
-    pylint_targets = ["icontract_hypothesis"]
-    subprocess.check_call(
-        ["pylint", "--rcfile=pylint.rc"] + pylint_targets, cwd=str(repo_root)
-    )
-
-    print("Pydocstyle'ing...")
-    subprocess.check_call(["pydocstyle", "icontract_hypothesis"], cwd=str(repo_root))
+    print("Type checking...")
+    subprocess.check_call(["ty", "check", "src", "tests"], cwd=str(repo_root))
 
     if not skip_test:
         print("Testing...")
@@ -69,7 +52,7 @@ def main() -> int:
                 "coverage",
                 "run",
                 "--source",
-                "icontract_hypothesis",
+                "src/icontract_hypothesis",
                 "-m",
                 "unittest",
                 "discover",
@@ -81,7 +64,7 @@ def main() -> int:
         subprocess.check_call(["coverage", "report"])
 
     print("Doctesting...")
-    for pth in (repo_root / "icontract_hypothesis").glob("**/*.py"):
+    for pth in (repo_root / "src" / "icontract_hypothesis").glob("**/*.py"):
         # ``__main__.py``'s cause doctest to go banana, so we need to skip them;
         # see https://stackoverflow.com/questions/58731519/doctest-fails-on-main-py
         if pth.name == "__main__.py":
@@ -92,7 +75,14 @@ def main() -> int:
 
     print("Checking the restructured text of the readme...")
     subprocess.check_call(
-        [sys.executable, "setup.py", "check", "--restructuredtext", "--strict"]
+        [
+            sys.executable,
+            "-m",
+            "docutils",
+            "--halt=warning",
+            "--writer=null",
+            "README.rst",
+        ]
     )
 
     print("Checking the help in the readme...")

@@ -45,8 +45,8 @@ import icontract._recompute
 import icontract._represent
 import icontract._types
 
-# Don't forget to update the version in setup.py!
-__version__ = "1.1.8"
+# Don't forget to update the version in pyproject.toml!
+__version__ = "1.1.9"
 __author__ = "Marko Ristin"
 __copyright__ = "Copyright 2020-2021 Marko Ristin"
 __license__ = "MIT"

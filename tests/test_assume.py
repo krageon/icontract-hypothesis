@@ -6,7 +6,6 @@
 # pylint: disable=no-value-for-parameter
 
 import unittest
-from typing import Optional, List, Any
 
 import hypothesis.errors
 import hypothesis.strategies

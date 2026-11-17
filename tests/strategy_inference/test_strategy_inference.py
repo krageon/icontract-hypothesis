@@ -9,16 +9,23 @@ import dataclasses
 import enum
 import math
 import re
-import sys
 import unittest
-from typing import List, NamedTuple, Union, Optional, Any, Mapping, Sequence, cast, Type
-
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
+from typing import (
+    Any,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Type,
+    TypedDict,
+    Union,
+    cast,
+)
 
 import hypothesis
-import hypothesis.strategies as st
 import hypothesis.errors
+import hypothesis.strategies as st
 import hypothesis.strategies._internal.types
 import icontract
 
@@ -303,7 +310,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         def some_func(a: A) -> None:
             pass
@@ -340,7 +347,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.y = y
 
             def __repr__(self) -> str:
-                return "A(x={}, y={})".format(self.x, self.y)
+                return f"A(x={self.x}, y={self.y})"
 
         strategy = hypothesis.strategies.from_type(A)
         self.assertEqual(
@@ -365,7 +372,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.y = y
 
             def __repr__(self) -> str:
-                return "A(x={}, y={})".format(self.x, self.y)
+                return f"A(x={self.x}, y={self.y})"
 
         def some_func(a: A) -> None:
             pass
@@ -387,7 +394,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         def some_func(a: A) -> None:
             pass
@@ -410,7 +417,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         def some_func(a: A) -> None:
             pass
@@ -471,7 +478,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         class B(icontract.DBC):
             @icontract.require(lambda y: y > 2020)
@@ -480,7 +487,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.y = y
 
             def __repr__(self) -> str:
-                return "B(a={!r}, y={})".format(self.a, self.y)
+                return f"B(a={self.a!r}, y={self.y})"
 
         def some_func(b: B) -> None:
             pass
@@ -512,7 +519,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "B(x={})".format(self.x)
+                return f"B(x={self.x})"
 
             def do_something(self) -> None:
                 pass
@@ -563,7 +570,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         @dataclasses.dataclass
         class B:
@@ -583,34 +590,32 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
 
     def test_typed_dict(self) -> None:
         # TypedDict not available below Python version 3.8.
-        if sys.version_info >= (3, 8):
+        class A(icontract.DBC):
+            @icontract.require(lambda x: x > 0)
+            def __init__(self, x: int):
+                self.x = x
 
-            class A(icontract.DBC):
-                @icontract.require(lambda x: x > 0)
-                def __init__(self, x: int):
-                    self.x = x
+            def __repr__(self) -> str:
+                return f"A(x={self.x})"
 
-                def __repr__(self) -> str:
-                    return "A(x={})".format(self.x)
+        # noinspection PyTypedDict
+        class B(TypedDict):
+            a: A
 
-            # noinspection PyTypedDict
-            class B(TypedDict):
-                a: A
+        def some_func(b: B) -> None:
+            pass
 
-            def some_func(b: B) -> None:
-                pass
+        strategy = icontract_hypothesis.infer_strategy(some_func)
+        self.assertEqual(
+            "fixed_dictionaries("
+            "{'b': fixed_dictionaries("
+            "{'a': fixed_dictionaries("
+            "{'x': integers(min_value=1)})"
+            ".map(lambda d: A(**d))}, optional={})})",
+            str(strategy),
+        )
 
-            strategy = icontract_hypothesis.infer_strategy(some_func)
-            self.assertEqual(
-                "fixed_dictionaries("
-                "{'b': fixed_dictionaries("
-                "{'a': fixed_dictionaries("
-                "{'x': integers(min_value=1)})"
-                ".map(lambda d: A(**d))}, optional={})})",
-                str(strategy),
-            )
-
-            icontract_hypothesis.test_with_inferred_strategy(some_func)
+        icontract_hypothesis.test_with_inferred_strategy(some_func)
 
     def test_list(self) -> None:
         class A(icontract.DBC):
@@ -619,7 +624,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         def some_func(aa: List[A]) -> None:
             pass
@@ -642,7 +647,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         class B(NamedTuple):
             a: A
@@ -666,7 +671,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "A(x={})".format(self.x)
+                return f"A(x={self.x})"
 
         class B(icontract.DBC):
             @icontract.require(lambda x: x < 0)
@@ -674,7 +679,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
                 self.x = x
 
             def __repr__(self) -> str:
-                return "B(x={})".format(self.x)
+                return f"B(x={self.x})"
 
         def some_func(a_or_b: Union[A, B]) -> None:
             pass

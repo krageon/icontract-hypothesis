@@ -3,10 +3,8 @@ import pathlib
 import platform
 import subprocess
 import sys
-from typing import List
 
 import cpuinfo
-
 import icontract
 
 """Run benchmarks and, if specified, overwrite README."""
@@ -27,9 +25,7 @@ def benchmark_against_others(repo_root: pathlib.Path, overwrite: bool) -> None:
         out = ["The following scripts were run:\n\n"]
         for script_rel_path in script_rel_paths:
             out.append(
-                "* `{0} <https://github.com/Parquery/icontract/tree/master/{0}>`_\n".format(
-                    script_rel_path
-                )
+                f"* `{script_rel_path} <https://github.com/Parquery/icontract/tree/master/{script_rel_path}>`_\n"
             )
         out.append("\n")
 
@@ -66,18 +62,14 @@ def benchmark_against_others(repo_root: pathlib.Path, overwrite: bool) -> None:
             index_start = lines.index(marker_start)
         except ValueError as exc:
             raise ValueError(
-                "Could not find the marker for the benchmarks in the {}: {}".format(
-                    readme_path, marker_start
-                )
+                f"Could not find the marker for the benchmarks in the {readme_path}: {marker_start}"
             ) from exc
 
         try:
             index_end = lines.index(marker_end)
         except ValueError as exc:
             raise ValueError(
-                "Could not find the start marker for the benchmarks in the {}: {}".format(
-                    readme_path, marker_end
-                )
+                f"Could not find the start marker for the benchmarks in the {readme_path}: {marker_end}"
             ) from exc
 
         assert (

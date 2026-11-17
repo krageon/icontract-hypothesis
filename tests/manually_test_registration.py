@@ -1,5 +1,4 @@
 """Test that DBC classes are correctly registered with Hypothesis."""
-import unittest
 
 import hypothesis.strategies._internal.types
 
@@ -17,7 +16,7 @@ def main() -> None:
 
     assert [A] == list(icontract._metaclass._CONTRACT_CLASSES)
 
-    import icontract_hypothesis
+    import icontract_hypothesis  # noqa: F401
 
     assert not hasattr(
         icontract._metaclass, "_CONTRACT_CLASSES"

@@ -7,11 +7,9 @@ import contextlib
 import io
 import sys
 import textwrap
-from typing import List, Optional, Tuple, TextIO, Union, NoReturn
+from typing import List, NoReturn, Optional, TextIO, Tuple, Union
 
-import icontract_hypothesis.pyicontract_hypothesis._general as _general
-import icontract_hypothesis.pyicontract_hypothesis._ghostwrite as _ghostwrite
-import icontract_hypothesis.pyicontract_hypothesis._test as _test
+from icontract_hypothesis.pyicontract_hypothesis import _general, _ghostwrite, _test
 
 
 class Params:
@@ -224,7 +222,7 @@ def _parse_args(
 
     Return (parsed args or None if failure, captured stdout, captured stderr).
     """
-    pass  # for pydocstyle
+    # for pydocstyle
 
     # From https://stackoverflow.com/questions/18160078
     @contextlib.contextmanager
@@ -253,7 +251,7 @@ def _parse_args(
 
 def assert_never(something: NoReturn) -> NoReturn:
     """Enforce exhaustive matching at mypy time."""
-    assert False, "Unhandled type: {}".format(type(something).__name__)
+    assert False, f"Unhandled type: {type(something).__name__}"
 
 
 def run(

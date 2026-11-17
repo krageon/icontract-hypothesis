@@ -4,6 +4,10 @@ import unittest
 
 from hypothesis import given
 
+from hypothesis.strategies import fixed_dictionaries, integers
+
+import icontract_hypothesis
+
 import test_samples.pyicontract_hypothesis.sample_module
 
 
@@ -20,13 +24,8 @@ class TestWithInferredStrategies(unittest.TestCase):
         execute()
 
     def test_another_func(self) -> None:
-        @given(
-            x=integers(min_value=1).filter(lambda x: square_greater_than_zero(x))
-        )
-        def execute(**kwargs) -> None:
-            test_samples.pyicontract_hypothesis.sample_module.another_func(**kwargs)
-
-        execute()
+        icontract_hypothesis.test_with_inferred_strategy(
+            test_samples.pyicontract_hypothesis.sample_module.another_func)
 
     def test_yet_another_func(self) -> None:
         @given(

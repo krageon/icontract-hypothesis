@@ -11,31 +11,27 @@ You need to install ``hypothesis`` extras in order to use this module.
 import ast
 import datetime
 import decimal
-import dis
 import fractions
 import inspect
-import io
+import keyword
 import re
-import sys
-import types
 import typing
 from typing import (
-    cast,
-    TypeVar,
-    Callable,
     Any,
+    AnyStr,
+    Callable,
+    Dict,
     Generic,
     List,
     Mapping,
     MutableMapping,
     Optional,
-    Union,
-    Dict,
+    Pattern,
     Tuple,
     Type,
-    AnyStr,
-    Pattern,
-    Set,
+    TypeVar,
+    Union,
+    cast,
 )
 
 import hypothesis.errors
@@ -173,7 +169,7 @@ def _no_name_in_descendants(root: ast.expr, name: str) -> bool:
 
         def generic_visit(self, node: Any) -> None:
             if not found:
-                super(Visitor, self).generic_visit(node)
+                super().generic_visit(node)
 
     visitor = Visitor()
     visitor.visit(root)
@@ -270,84 +266,76 @@ def _infer_min_max_from_node(
             else:
                 pass
 
-    elif len(node.comparators) == 2:
-        # Match something like "0 < x < 100" and "0 > x > -100"
-        if (
-            _no_name_in_descendants(root=node.left, name=arg_name)
-            and isinstance(node.comparators[0], ast.Name)
-            and node.comparators[0].id == arg_name
-            and _no_name_in_descendants(root=node.comparators[1], name=arg_name)
+    # Match something like "0 < x < 100" and "0 > x > -100"
+    elif (
+        len(node.comparators) == 2
+        and _no_name_in_descendants(root=node.left, name=arg_name)
+        and isinstance(node.comparators[0], ast.Name)
+        and node.comparators[0].id == arg_name
+        and _no_name_in_descendants(root=node.comparators[1], name=arg_name)
+    ):
+        left_value, recomputed = _recompute(condition=condition, node=node.left)
+
+        # If we can not recompute the left value, we also can not infer the bounds.
+        if not recomputed:
+            return None
+
+        right_value, recomputed = _recompute(
+            condition=condition, node=node.comparators[1]
+        )
+
+        # If we can not recompute the right value, we also can not infer the bounds.
+        if not recomputed:
+            return None
+
+        op0, op1 = node.ops
+
+        # Match something like "0 < x < 100"
+        if isinstance(op0, (ast.Lt, ast.LtE)) and isinstance(
+            op1, (ast.Lt, ast.LtE)
         ):
-            left_value, recomputed = _recompute(condition=condition, node=node.left)
-
-            # If we can not recompute the left value, we also can not infer the bounds.
-            if not recomputed:
-                return None
-
-            right_value, recomputed = _recompute(
-                condition=condition, node=node.comparators[1]
+            return _InferredMinMax(
+                min_value=left_value,
+                min_inclusive=isinstance(op0, ast.LtE),
+                max_value=right_value,
+                max_inclusive=isinstance(op1, ast.LtE),
             )
 
-            # If we can not recompute the right value, we also can not infer the bounds.
-            if not recomputed:
-                return None
+        # Match something like "0 > x > -100"
+        elif isinstance(op0, (ast.Gt, ast.GtE)) and isinstance(
+            op1, (ast.Gt, ast.GtE)
+        ):
+            return _InferredMinMax(
+                min_value=right_value,
+                min_inclusive=isinstance(op1, ast.GtE),
+                max_value=left_value,
+                max_inclusive=isinstance(op0, ast.GtE),
+            )
 
-            op0, op1 = node.ops
-
-            # Match something like "0 < x < 100"
-            if isinstance(op0, (ast.Lt, ast.LtE)) and isinstance(
-                op1, (ast.Lt, ast.LtE)
-            ):
-                return _InferredMinMax(
-                    min_value=left_value,
-                    min_inclusive=isinstance(op0, ast.LtE),
-                    max_value=right_value,
-                    max_inclusive=isinstance(op1, ast.LtE),
-                )
-
-            # Match something like "0 > x > -100"
-            elif isinstance(op0, (ast.Gt, ast.GtE)) and isinstance(
-                op1, (ast.Gt, ast.GtE)
-            ):
-                return _InferredMinMax(
-                    min_value=right_value,
-                    min_inclusive=isinstance(op1, ast.GtE),
-                    max_value=left_value,
-                    max_inclusive=isinstance(op0, ast.GtE),
-                )
-
-            # We could not infer any bound from this condition.
-            else:
-                pass
+        # We could not infer any bound from this condition.
+        else:
+            pass
 
     return None
 
 
-def _body_node_from_condition(condition: Callable[..., Any]) -> Optional[ast.expr]:
-    """Try to extract the body node of the contract's lambda condition."""
-    if not icontract._represent.is_lambda(a_function=condition):
+def _inspect_condition(
+    condition: Callable[..., Any],
+) -> Optional[icontract._represent.ConditionLambdaInspection]:
+    """Return lambda source information when available."""
+    if getattr(condition, "__name__", None) != "<lambda>":
         return None
 
-    lines, condition_lineno = inspect.findsource(condition)
-    filename = inspect.getsourcefile(condition)
-    assert filename is not None
+    try:
+        return icontract._represent.inspect_lambda_condition(condition)
+    except (OSError, TypeError, SyntaxError, ValueError):
+        return None
 
-    decorator_inspection = icontract._represent.inspect_decorator(
-        lines=lines, lineno=condition_lineno, filename=filename
-    )
-    lambda_inspection = icontract._represent.find_lambda_condition(
-        decorator_inspection=decorator_inspection
-    )
 
-    assert lambda_inspection is not None, (
-        "Expected lambda_inspection to be non-None if _is_lambda is True on: {}".format(
-            condition
-        )
-    )
-
-    body_node = lambda_inspection.node.body
-
-    return body_node
+def _body_node_from_condition(condition: Callable[..., Any]) -> Optional[ast.expr]:
+    """Try to extract the body node of the contract's lambda condition."""
+    inspection = _inspect_condition(condition)
+    return None if inspection is None else inspection.node.body
 
 
 @icontract.require(
@@ -365,9 +353,9 @@ def _infer_min_max_from_preconditions(
 
     Return the contracts which could not be interpreted.
     """
-    min_value = None  # type: Optional[Union[int, float]]
+    min_value: Optional[Union[int, float]] = None
     min_inclusive = False
-    max_value = None  # type: Optional[Union[int, float]]
+    max_value: Optional[Union[int, float]] = None
     max_inclusive = False
 
     remaining_contracts = []  # type: List[icontract._types.Contract]
@@ -413,13 +401,13 @@ def _infer_min_max_from_preconditions(
                             # Current max is already the correct upper bound.
                             pass
 
-                if (inferred.max_value is not None and not inferred.max_inclusive) or (
-                    inferred.min_value is not None and not inferred.min_inclusive
-                ):
-                    # We can not have exclusive bounds on Fractions and Decimals,
-                    # so we need to leave the contracts in place to filter out these edge cases.
-                    if type_hint in [fractions.Fraction, decimal.Decimal]:
-                        remaining_contracts.append(contract)
+                # We can not have exclusive bounds on Fractions and Decimals,
+                # so we need to leave the contracts in place to filter out these edge cases.
+                if (
+                    (inferred.max_value is not None and not inferred.max_inclusive)
+                    or (inferred.min_value is not None and not inferred.min_inclusive)
+                ) and type_hint in [fractions.Fraction, decimal.Decimal]:
+                    remaining_contracts.append(contract)
             else:
                 remaining_contracts.append(contract)
         else:
@@ -577,7 +565,7 @@ def _make_strategy_with_min_max_for_type(
         )
 
     else:
-        raise AssertionError("Unexpected type hint: {}".format(a_type))
+        raise AssertionError(f"Unexpected type hint: {a_type}")
 
     return strategy
 
@@ -645,14 +633,14 @@ def _infer_regexp_from_condition(
 
                 args.append(value)
 
-            kwargs = dict()  # type: Dict[str, Any]
+            kwargs = {}  # type: Dict[str, Any]
             for keyword in body_node.keywords:
                 value, recomputed = _recompute(condition=condition, node=keyword.value)
                 if not recomputed:
                     return None
 
                 assert keyword.arg is not None, (
-                    "Unexpected missing arg for a keyword: {}".format(ast.dump(keyword))
+                    f"Unexpected missing arg for a keyword: {ast.dump(keyword)}"
                 )
                 kwargs[keyword.arg] = value
 
@@ -695,7 +683,7 @@ def _infer_str_strategy_from_preconditions(
             break
 
     if found_idx == -1:
-        return None, contracts[:]
+        return None, contracts.copy()
 
     assert pattern_in_condition is not None
     return (
@@ -745,10 +733,10 @@ def _infer_strategy_for_argument(
             and inferred.min_value > inferred.max_value
         ):
             raise ValueError(
-                (
-                    "The min and max values inferred for the argument {} could not be satisfied: "
-                    "inferred min is {}, inferred max is {}. Are your preconditions correct?"
-                ).format(arg_name, inferred.min_value, inferred.max_value)
+                
+                    f"The min and max values inferred for the argument {arg_name} could not be satisfied: "
+                    f"inferred min is {inferred.min_value}, inferred max is {inferred.max_value}. Are your preconditions correct?"
+                
             )
 
         strategy = _make_strategy_with_min_max_for_type(
@@ -773,26 +761,86 @@ def _infer_strategy_for_argument(
         #
         # For example, a multi-line condition such as ``lambda lst: all(...)`` will be
         # rendered as ``lambda lst: <unknown>``.
-        lambda_inspection = icontract._represent.inspect_lambda_condition(
-            condition=contract.condition
-        )
+        lambda_inspection = _inspect_condition(contract.condition)
 
-        if lambda_inspection is not None:
-            # As this attribute is non-invasive, we polute the original condition.
-            if not hasattr(contract.condition, "__icontract_hypothesis_source_code__"):
-                condition_repr = lambda_inspection.atok.get_text(lambda_inspection.node)
-                setattr(
-                    contract.condition,
-                    "__icontract_hypothesis_source_code__",
-                    condition_repr,
-                )
+        # As this attribute is non-invasive, we polute the original condition.
+        if lambda_inspection is not None and not hasattr(
+            contract.condition, "__icontract_hypothesis_source_code__"
+        ):
+            condition_repr = lambda_inspection.atok.get_text(lambda_inspection.node)
+            contract.condition.__icontract_hypothesis_source_code__ = condition_repr
 
         strategy = strategy.filter(contract.condition)
 
     return strategy
 
 
-# fmt: off
+def _condition_repr(
+    contract: icontract._types.Contract,
+    inspection: Optional[icontract._represent.ConditionLambdaInspection],
+) -> str:
+    """Describe the dictionary adapter without changing executable code."""
+    condition_name = getattr(contract.condition, "__name__", "")
+    if not condition_name.isidentifier() or keyword.iskeyword(condition_name):
+        condition_name = "_condition"
+
+    used_names = {condition_name}
+    if inspection is not None:
+        used_names.update(
+            node.id
+            for node in ast.walk(inspection.node)
+            if isinstance(node, ast.Name) and node.id not in contract.condition_arg_set
+        )
+
+    parameter = "d"
+    while parameter in used_names:
+        parameter = "_" + parameter
+
+    values = {
+        name: parameter if name == "_KWARGS" else f"{parameter}[{name!r}]"
+        for name in contract.condition_args
+    }
+    arguments = ", ".join(f"{name}={value}" for name, value in values.items())
+    if inspection is None:
+        return f"lambda {parameter}: {condition_name}({arguments})"
+
+    node = inspection.node
+    source = inspection.atok.get_text(node)
+    call_repr = f"lambda {parameter}: ({source})({arguments})"
+
+    # A textual substitution cannot safely distinguish bindings in nested scopes.
+    scoped_nodes = (
+        ast.Lambda,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+        ast.NamedExpr,
+    )
+    if any(isinstance(child, scoped_nodes) for child in ast.walk(node.body)):
+        return call_repr
+
+    start, end = inspection.atok.get_text_range(node.body)
+    text = inspection.atok.text[start:end]
+    replacements = []  # type: List[Tuple[int, int, str]]
+    for child in ast.walk(node.body):
+        if isinstance(child, ast.Name) and child.id in values:
+            left, right = inspection.atok.get_text_range(child)
+            if right <= left:
+                return call_repr
+            replacements.append((left - start, right - start, values[child.id]))
+
+    if not replacements:
+        # Preserve the original representation for conditions without arguments.
+        return source if not contract.condition_args else call_repr
+
+    # Apply changes from right to left to preserve the original offsets.
+    for left, right, value in sorted(replacements, reverse=True):
+        text = text[:left] + value + text[right:]
+
+    return f"lambda {parameter}: {text}"
+
+
 @icontract.ensure(
     lambda result:
     hasattr(result, "__icontract_hypothesis_source_code__"),
@@ -804,15 +852,10 @@ def _infer_strategy_for_argument(
     "Condition-as-filter-function is lambda "
     "(even in cases where it calls a function as it is rewritten)"
 )
-# fmt: on
 def _rewrite_condition_as_filter_on_kwargs(
     contract: icontract._types.Contract,
 ) -> Callable[..., Any]:
-    """
-    Parse, rewrite and recompile the condition so that it can be used as filter on kwargs.
-
-    Return (rewritten condition as filter function, string representation of the condition)
-    """
+    """Adapt a condition to accept a dictionary of function arguments."""
     if "_ARGS" in contract.condition_arg_set:
         raise NotImplementedError(
             "The handling of the special argument _ARGS is not currently handled "
@@ -820,280 +863,16 @@ def _rewrite_condition_as_filter_on_kwargs(
             "this feature: https://github.com/mristin/icontract-hypothesis/issues"
         )
 
-    lambda_inspection = icontract._represent.inspect_lambda_condition(
-        condition=contract.condition
+    condition = contract.condition
+    names = tuple(contract.condition_args)
+    predicate = lambda d: condition(
+        **{name: d if name == "_KWARGS" else d[name] for name in names}
     )
-
-    if lambda_inspection is None:
-        condition_repr = "lambda d: {}({})".format(
-            contract.condition.__name__,
-            ", ".join(
-                "_KWARGS=d"
-                if arg_name == "_KWARGS"
-                else "{0}=d['{0}']".format(arg_name)
-                for arg_name in contract.condition_args
-            ),
-        )
-
-        recompiled_code = compile(
-            condition_repr,
-            filename=f"<rewritten by icontract-hypothesis: {condition_repr}>",
-            mode="eval",
-        )  # type: types.CodeType
-
-        lambda_code = recompiled_code.co_consts[0]
-
-        rewired_function = types.FunctionType(
-            lambda_code,
-            {contract.condition.__name__: contract.condition},
-            name="<lambda>",
-            argdefs=contract.condition.__defaults__,  # type: ignore
-            closure=contract.condition.__closure__,  # type: ignore
-        )
-
-        rewired_function.__icontract_hypothesis_source_code__ = condition_repr  # type: ignore
-        return rewired_function
-
-    name_set = set()  # type: Set[str]
-
-    class FindNamesVisitor(ast.NodeVisitor):
-        """Find all the Name nodes."""
-
-        def visit_Name(  # pylint: disable=invalid-name,no-self-use,missing-docstring
-            self, node: ast.Name
-        ) -> None:
-            name_set.add(node.id)
-
-    FindNamesVisitor().visit(lambda_inspection.node)
-
-    # We need to make sure that ``kwargs_name`` does not conflict with any global or closured
-    # variable. However, it is OK if it conflicts with the local variables as they are going
-    # to be replaced.
-    kwargs_name = "d"
-    while kwargs_name in name_set.difference(contract.condition_arg_set):
-        kwargs_name = "_" + kwargs_name
-
-    class Replace:
-        """Instruct to replace the start and end of the source code with the given replacement."""
-
-        def __init__(self, start: int, end: int, replacement: str) -> None:
-            self.start = start
-            self.end = end
-            self.replacement = replacement
-
-        def __repr__(self) -> str:
-            return "Replace(start={}, end={}, replacement={!r})".format(
-                self.start, self.end, self.replacement
-            )
-
-    replacements_in_text = []  # type: List[Replace]
-
-    class ReplaceNameWithSubscriptTransformer(ast.NodeTransformer):
-        """Replace condition arguments with kwargs subscript."""
-
-        def visit_Name(  # pylint: disable=invalid-name,no-self-use,missing-docstring
-            self, node: ast.Name
-        ) -> ast.expr:
-            nonlocal replacements_in_text
-
-            if node.id not in contract.condition_arg_set:
-                return node
-
-            assert lambda_inspection is not None
-            start, end = lambda_inspection.atok.get_text_range(node)
-
-            if node.id == "_KWARGS":
-                replacements_in_text.append(
-                    Replace(start=start, end=end, replacement=kwargs_name)
-                )
-                return ast.Name(id=kwargs_name, ctx=ast.Load())
-
-            replacements_in_text.append(
-                Replace(
-                    start=start,
-                    end=end,
-                    replacement="{}[{!r}]".format(kwargs_name, node.id),
-                )
-            )
-
-            return ast.Subscript(
-                value=ast.Name(id=kwargs_name, ctx=ast.Load()),
-                slice=ast.Index(value=ast.Constant(value=node.id, kind=None)),
-                ctx=ast.Load(),
-            )
-
-    lambda_node = ReplaceNameWithSubscriptTransformer().visit(lambda_inspection.node)
-
-    lambda_node.args = ast.arguments(
-        posonlyargs=[],
-        args=[ast.arg(arg=kwargs_name, annotation=None, type_comment=None)],
-        vararg=None,
-        kwonlyargs=[],
-        kw_defaults=[],
-        kwarg=None,
-        defaults=[],
+    inspection = _inspect_condition(condition)
+    predicate.__icontract_hypothesis_source_code__ = _condition_repr(  # type: ignore
+        contract, inspection
     )
-
-    expression_node = ast.Expression(body=lambda_node)
-
-    class AddPositionVisitor(ast.NodeVisitor):
-        """Add position to all the nodes if they do not have one already."""
-
-        def generic_visit(self, node: Any) -> None:
-            assert lambda_inspection is not None
-            node.lineno = lambda_inspection.node.lineno
-            node.col_offset = lambda_inspection.node.col_offset
-
-            super().generic_visit(node)
-
-    AddPositionVisitor().visit(expression_node)
-
-    ##
-    # Rewrite text
-    ##
-
-    if len(replacements_in_text) == 0:
-        condition_repr = lambda_inspection.atok.get_text(lambda_inspection.node)
-    else:
-        # We have to use the text of the whole decorator, not just the lambda since ``atok``
-        # refers to the decorator.
-        text = lambda_inspection.atok.text
-
-        body_start, body_end = lambda_inspection.atok.get_text_range(
-            lambda_inspection.node.body
-        )
-
-        parts = []  # type: List[str]
-
-        previous_replace = None  # type: Optional[Replace]
-        for replace in replacements_in_text:
-            if previous_replace is None:
-                parts.append(text[body_start : replace.start])
-            else:
-                parts.append(text[previous_replace.end : replace.start])
-
-            parts.append(replace.replacement)
-            previous_replace = replace
-
-        assert previous_replace is not None
-        parts.append(text[previous_replace.end : body_end])
-        condition_repr = "lambda {}: {}".format(kwargs_name, "".join(parts))
-
-    ##
-    # Recompile the code
-    ##
-
-    recompiled_code = compile(
-        expression_node,
-        filename=f"<rewritten by icontract-hypothesis: {condition_repr}>",
-        mode="eval",
-    )
-
-    ##
-    # Patch the recompiled code such that it uses globals and freevars (closures) from the
-    # original condition function
-    ##
-
-    # We need to patch all the closured vars in the recompiled code
-    # to LOAD_DEREF instead of LOAD_GLOBAL
-    closured_vars = {
-        name: i for i, name in enumerate(contract.condition.__code__.co_freevars)
-    }
-    if len(closured_vars) > 256:
-        raise NotImplementedError(
-            "icontract-hypothesis does not handle condition lambdas with more than 256 closures. "
-            "Please create an issue to let us know to implement it: "
-            "https://github.com/mristin/icontract-hypothesis/issues"
-        )
-
-    # The indices of global vars need to change to correspond to the original condition function.
-    global_vars = {
-        name: i for i, name in enumerate(contract.condition.__code__.co_names)
-    }
-
-    # The first const contains the actual code of the lambda function.
-    lambda_code = recompiled_code.co_consts[0]
-
-    opcode_load_global = dis.opmap["LOAD_GLOBAL"]
-    opcode_load_deref = dis.opmap["LOAD_DEREF"]
-    opcode_extended_arg = dis.opmap["EXTENDED_ARG"]
-
-    bytecode = lambda_code.co_code
-    new_bytecode = io.BytesIO()
-
-    # The last instruction must be RETURN_VALUE.
-    assert (
-        bytecode[-2:]
-        == dis.opmap["RETURN_VALUE"].to_bytes(1, byteorder="little") + b"\x00"
-    )
-
-    # Since we know that the last instruction is RETURN_VALUE,
-    # we can always look up the next opcode.
-    for i in range(0, len(bytecode) - 2, 2):
-        opcode = bytecode[i]
-        oparg = bytecode[i + 1]
-
-        next_opcode = bytecode[i + 2]
-
-        if opcode == opcode_extended_arg and next_opcode == opcode_load_global:
-            raise NotImplementedError(
-                "icontract-hypothesis does not handle lambdas with more than 256 globals. "
-                "Please create an issue to let us know to implement it: "
-                "https://github.com/mristin/icontract-hypothesis/issues"
-            )
-
-        if opcode == opcode_load_global:
-            #if lambda_code.co_names
-            name = lambda_code.co_names[oparg]
-            if name in closured_vars:
-                new_bytecode.write(
-                    opcode_load_deref.to_bytes(1, byteorder="little")
-                    + closured_vars[name].to_bytes(1, byteorder="little")
-                )
-            elif name in global_vars:
-                new_bytecode.write(
-                    opcode_load_global.to_bytes(1, byteorder="little")
-                    + global_vars[name].to_bytes(1, byteorder="little")
-                )
-            else:
-                raise AssertionError(
-                    f"Unexpected case where the opcode was {opcode} ({(dis.opmap[opcode])!r}"
-                    f"and the name was {name!r}, but the original closures were {closured_vars!r} "
-                    f"and the original globals were {global_vars!r}, respectively."
-                )
-        else:
-            new_bytecode.write(bytecode[i : i + 2])
-
-    new_bytecode.write(bytecode[-2:])
-
-    assert isinstance(lambda_code, types.CodeType)
-    new_lambda_code = lambda_code.replace(
-        co_code=new_bytecode.getvalue(),
-        co_names=contract.condition.__code__.co_names,
-        co_filename="<recompiled by icontract-hypothesis>",
-        co_name="<lambda>",
-        co_freevars=contract.condition.__code__.co_freevars,
-    )
-
-    recompiled_function = eval(  # pylint: disable=eval-used
-        recompiled_code, dict(globals())
-    )
-
-    ##
-    # Re-wire the globals and the closure
-    ##
-
-    rewired_function = types.FunctionType(
-        new_lambda_code,
-        contract.condition.__globals__,  # type: ignore
-        name="<lambda>",
-        argdefs=recompiled_function.__defaults__,
-        closure=contract.condition.__closure__,  # type: ignore
-    )
-
-    rewired_function.__icontract_hypothesis_source_code__ = condition_repr  # type: ignore
-
-    return rewired_function
+    return predicate
 
 
 def _infer_strategy_from_conjunction(
@@ -1112,9 +891,7 @@ def _infer_strategy_from_conjunction(
     # keep the list of the zero or multi-argument contracts
     ##
 
-    single_argument_contracts = (
-        dict()
-    )  # type: MutableMapping[str, List[icontract._types.Contract]]
+    single_argument_contracts: MutableMapping[str, List[icontract._types.Contract]] = {}
 
     non_single_argument_contracts = []  # type: List[icontract._types.Contract]
 
@@ -1239,7 +1016,7 @@ def infer_strategy(
     """
     parameters = inspect.signature(func).parameters
     if len(parameters) == 0 and not hasattr(func, "__self__"):
-        return hypothesis.strategies.just(dict())
+        return hypothesis.strategies.just({})
 
     for name, parameter in parameters.items():
         if parameter.kind == inspect.Parameter.POSITIONAL_ONLY:
@@ -1249,8 +1026,6 @@ def infer_strategy(
                 "Please create an issue on GitHub if you need this feature: "
                 "https://github.com/mristin/icontract-hypothesis/issues"
             )
-        else:
-            pass
 
     type_hints = typing.get_type_hints(func, localns=localns, globalns=globalns)
     if "return" in type_hints:
@@ -1290,30 +1065,30 @@ def infer_strategy(
             #
             # The dunder ``__new__`` is special as we do not want to generate the first argument
             # corresponding to the class.
-            cls_parameter = next(k for k in parameters.keys())
+            cls_parameter = next(k for k in parameters)
 
             parameter_set.remove(cls_parameter)
 
             if cls_parameter in type_hints:
                 del type_hints[cls_parameter]
 
+    # This might be an unbound instance method.
+    # There is no way in Python 3 how we can directly figure out the class of an unbound
+    # method, so we try to hack our way through using ``__qualname__``.
+    #
+    # See https://stackoverflow.com/questions/3589311/get-defining-class-of-unbound-method-object-in-python-3
     elif (
         not hasattr(func, "__self__")
         and "self" in parameters
         and "self" not in type_hints
         and inspect.isfunction(func)
+        and ".<locals>." not in func.__qualname__
     ):
-        # This might be an unbound instance method.
-        # There is no way in Python 3 how we can directly figure out the class of an unbound
-        # method, so we try to hack our way through using ``__qualname__``.
-        #
-        # See https://stackoverflow.com/questions/3589311/get-defining-class-of-unbound-method-object-in-python-3
-        if ".<locals>." not in func.__qualname__:
-            parts = func.__qualname__.rsplit(".", 1)
-            if len(parts) >= 2:
-                maybe_cls = getattr(inspect.getmodule(func), parts[0], None)
-                if inspect.isclass(maybe_cls):
-                    type_hints["self"] = maybe_cls
+        parts = func.__qualname__.rsplit(".", 1)
+        if len(parts) >= 2:
+            maybe_cls = getattr(inspect.getmodule(func), parts[0], None)
+            if inspect.isclass(maybe_cls):
+                type_hints["self"] = maybe_cls
 
     typed_args = set(type_hints)
 
@@ -1331,16 +1106,11 @@ def infer_strategy(
 
     if typed_args != parameter_set:
         raise TypeError(
-            (
-                "No search strategy could be inferred for the function: {}; "
-                "the following arguments are missing the type annotations: {};\n\n"
-                "sorted typed_args was {}, sorted parameter_set was {}"
-            ).format(
-                func,
-                list(parameter_set.difference(typed_args)),
-                sorted(typed_args),
-                sorted(parameter_set),
-            )
+            
+                f"No search strategy could be inferred for the function: {func}; "
+                f"the following arguments are missing the type annotations: {list(parameter_set.difference(typed_args))};\n\n"
+                f"sorted typed_args was {sorted(typed_args)}, sorted parameter_set was {sorted(parameter_set)}"
+            
         )
 
     checker = icontract._checkers.find_checker(func)
@@ -1415,7 +1185,7 @@ def test_with_inferred_strategy(
 
     >>> TestSomething().test_that_it_works()
     """
-    pass  # for pydocstyle
+    # for pydocstyle
 
     # Since ``self`` is already included in the strategy, we have to unbind the ``func``.
     # Please see ``infer_strategy`` function and how it deals with ``self_instance``.
@@ -1443,14 +1213,14 @@ def _register_with_hypothesis(cls: Type[T]) -> None:
     # them. However, if a class provides a ``__new__``, we can instantiate it even if it is
     # abstract!
     # pylint: disable=comparison-with-callable
-    if inspect.isabstract(cls) and getattr(cls, "__new__") == object.__new__:
+    if inspect.isabstract(cls) and cls.__new__ == object.__new__:
         return
 
     if cls in hypothesis.strategies._internal.types._global_type_lookup:
         # Do not re-register
         return
 
-    init = getattr(cls, "__init__")
+    init = cls.__init__
 
     if inspect.isfunction(init):
         # If there is is no checker nor pre-conditions on ``__init__``, we should simply delegate
@@ -1475,10 +1245,10 @@ def _register_with_hypothesis(cls: Type[T]) -> None:
         # We have to distinguish this special case which is used by named tuples and
         # possibly other optimized data structures.
         # In those cases, we have to infer the strategy based on __new__ instead of __init__.
-        new = getattr(cls, "__new__")
+        new = cls.__new__
         assert (
             new is not None
-        ), "Expected __new__ in {} if __init__ is a slot wrapper.".format(cls)
+        ), f"Expected __new__ in {cls} if __init__ is a slot wrapper."
 
         # We have to add the ``a_type`` itself to a local namespace for forward references.
         # This is usually the case for the return value of ``__new__``.
@@ -1490,9 +1260,7 @@ def _register_with_hypothesis(cls: Type[T]) -> None:
         strategy = infer_strategy(new, localns={cls.__name__: cls})
     else:
         raise AssertionError(
-            "Expected __init__ to be either a function or a slot wrapper, but got: {}".format(
-                type(init)
-            )
+            f"Expected __init__ to be either a function or a slot wrapper, but got: {type(init)}"
         )
 
     pack_repr = f"lambda d: {cls.__name__}(**d)"
@@ -1528,13 +1296,22 @@ def _hook_into_icontract_and_hypothesis() -> None:
     # Monkey-patch lambda source so that we do not have to introduce
     # strategy classes just for this functionality.
     # See https://github.com/HypothesisWorks/hypothesis/issues/2713
-    upstream_extract_lambda_source = (
-        hypothesis.internal.reflection.lambda_sources.lambda_description
-    )
-    hypothesis.internal.reflection.lambda_sources.lambda_description = lambda f: (
-        getattr(f, "__icontract_hypothesis_source_code__", None)
-        or upstream_extract_lambda_source(f)  # type: ignore
-    )
+    reflection = hypothesis.internal.reflection
+    if hasattr(reflection, "lambda_sources"):
+        source_module = reflection.lambda_sources
+        source_name = "lambda_description"
+    else:
+        source_module = reflection
+        source_name = "extract_lambda_source"
+
+    upstream_extract_lambda_source = getattr(source_module, source_name)
+
+    def describe_lambda(condition: Callable[..., Any]) -> str:
+        return getattr(condition, "__icontract_hypothesis_source_code__", None) or (
+            upstream_extract_lambda_source(condition)
+        )
+
+    setattr(source_module, source_name, describe_lambda)
 
 
 _hook_into_icontract_and_hypothesis()

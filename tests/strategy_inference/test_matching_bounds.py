@@ -2,9 +2,7 @@ import datetime
 import decimal
 import fractions
 import math
-import sys
 import unittest
-from typing import Optional
 
 import icontract
 
@@ -705,18 +703,11 @@ class TestTimedelta(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
 
-        if sys.version_info < (3, 7):
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(min_value=datetime.timedelta(10))})",
-                str(strategy),
-            )
-        else:
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(min_value=datetime.timedelta(days=10))})",
-                str(strategy),
-            )
+        self.assertEqual(
+            "fixed_dictionaries({"
+            "'x': timedeltas(min_value=datetime.timedelta(days=10))})",
+            str(strategy),
+        )
 
         icontract_hypothesis.test_with_inferred_strategy(some_func)
 
@@ -727,18 +718,11 @@ class TestTimedelta(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
 
-        if sys.version_info < (3, 7):
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(min_value=datetime.timedelta(10, 0, 1))})",
-                str(strategy),
-            )
-        else:
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(min_value=datetime.timedelta(days=10, microseconds=1))})",
-                str(strategy),
-            )
+        self.assertEqual(
+            "fixed_dictionaries({"
+            "'x': timedeltas(min_value=datetime.timedelta(days=10, microseconds=1))})",
+            str(strategy),
+        )
 
         icontract_hypothesis.test_with_inferred_strategy(some_func)
 
@@ -749,18 +733,11 @@ class TestTimedelta(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
 
-        if sys.version_info < (3, 7):
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(max_value=datetime.timedelta(10))})",
-                str(strategy),
-            )
-        else:
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas(max_value=datetime.timedelta(days=10))})",
-                str(strategy),
-            )
+        self.assertEqual(
+            "fixed_dictionaries({"
+            "'x': timedeltas(max_value=datetime.timedelta(days=10))})",
+            str(strategy),
+        )
 
         icontract_hypothesis.test_with_inferred_strategy(some_func)
 
@@ -771,20 +748,12 @@ class TestTimedelta(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
 
-        if sys.version_info < (3, 7):
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas("
-                "max_value=datetime.timedelta(9, 86399, 999999))})",
-                str(strategy),
-            )
-        else:
-            self.assertEqual(
-                "fixed_dictionaries({"
-                "'x': timedeltas("
-                "max_value=datetime.timedelta(days=9, seconds=86399, microseconds=999999))})",
-                str(strategy),
-            )
+        self.assertEqual(
+            "fixed_dictionaries({"
+            "'x': timedeltas("
+            "max_value=datetime.timedelta(days=9, seconds=86399, microseconds=999999))})",
+            str(strategy),
+        )
 
         icontract_hypothesis.test_with_inferred_strategy(some_func)
 

@@ -24,3 +24,14 @@ build-backend = "uv_build"
 dev = [
     "pytest>=7.0.1",
 ]
+
+[tool.ruff]
+extend-exclude = ["test_samples/pyicontract_hypothesis/expected_ghostwrites"]
+
+[tool.ruff.lint]
+extend-ignore = ["FA100"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/icontract_hypothesis/pyicontract_hypothesis/*" = ["BLE001"]
+"tests/**" = ["S102", "PLC3002", "PYI034"]
+"tests_3_7/**" = ["PYI034"]

@@ -10,7 +10,7 @@ import pathlib
 import re
 import tokenize
 import types
-from typing import List, Union, Tuple, Optional, Callable, Any, Pattern
+from typing import Any, Callable, List, Optional, Pattern, Tuple, Union
 
 import icontract
 
@@ -58,7 +58,7 @@ def _parse_point_spec(
             first = int(mtch.group("first"))
             if first <= 0:
                 errors.append(
-                    "Unexpected line index (expected to start from 1): {}".format(text)
+                    f"Unexpected line index (expected to start from 1): {text}"
                 )
                 return None, errors
 
@@ -69,12 +69,12 @@ def _parse_point_spec(
 
             if first <= 0:
                 errors.append(
-                    "Unexpected line index (expected to start from 1): {}".format(text)
+                    f"Unexpected line index (expected to start from 1): {text}"
                 )
                 return None, errors
 
             if last < first:
-                errors.append("Unexpected line range (last < first): {}".format(text))
+                errors.append(f"Unexpected line range (last < first): {text}")
                 return None, errors
 
             else:
@@ -89,7 +89,7 @@ def _parse_point_spec(
         pattern = re.compile(text)
         return pattern, errors
     except re.error as err:
-        errors.append("Failed to parse the pattern {}: {}".format(text, err))
+        errors.append(f"Failed to parse the pattern {text}: {err}")
         return None, errors
 
 
@@ -138,7 +138,7 @@ def load_module_with_name(name: str) -> Tuple[Optional[types.ModuleType], List[s
         assert isinstance(mod, types.ModuleType)
         return mod, []
     except Exception as error:
-        return None, ["Failed to import the module {}: {}".format(name, error)]
+        return None, [f"Failed to import the module {name}: {error}"]
 
 
 def load_module_from_source_file(
@@ -157,7 +157,7 @@ def load_module_from_source_file(
         mod = types.ModuleType(loader.name)
         loader.exec_module(mod)
     except Exception as error:
-        return None, ["Failed to import the file {}: {}".format(path, error)]
+        return None, [f"Failed to import the file {path}: {error}"]
 
     assert mod is not None, "Expected mod to be set before"
 
@@ -245,7 +245,7 @@ def select_function_points(
     # Add ranges of lines given by comment directives to the ``exclude``
     ##
 
-    extended_exclude = exclude[:]
+    extended_exclude = exclude.copy()
 
     range_start = None  # type: Optional[int]
     reader = io.BytesIO(source_code.encode("utf-8"))
@@ -257,11 +257,11 @@ def select_function_points(
 
                 if value not in ["enable", "disable"]:
                     errors.append(
-                        (
-                            "Unexpected directive on line {}. "
+                        
+                            f"Unexpected directive on line {first_row}. "
                             "Expected '# pyicontract-hypothesis: (disable|enable)', "
-                            "but got: {}"
-                        ).format(first_row, line.strip())
+                            f"but got: {line.strip()}"
+                        
                     )
                     continue
 
@@ -279,7 +279,7 @@ def select_function_points(
 
                 else:
                     raise AssertionError(
-                        "Unexpected value: {}".format(json.dumps(value))
+                        f"Unexpected value: {json.dumps(value)}"
                     )
 
     exclude = extended_exclude
@@ -295,13 +295,13 @@ def select_function_points(
         incl_line_ranges = [incl for incl in include if isinstance(incl, _LineRange)]
         if len(incl_line_ranges) > 100:
             print(
-                (
-                    "There are much more --include items then expected: {0}. "
+                
+                    f"There are much more --include items then expected: {len(incl_line_ranges)}. "
                     "Please consider filing an issue by visiting this link: "
                     "https://github.com/Parquery/icontract/issues/new"
                     "?title=Use+interval+tree"
-                    "&body=We+had+{0}+include+line+ranges+in+pyicontract-hypothesis."
-                ).format(len(incl_line_ranges))
+                    f"&body=We+had+{len(incl_line_ranges)}+include+line+ranges+in+pyicontract-hypothesis."
+                
             )
 
         if len(incl_line_ranges) > 0:
@@ -344,13 +344,13 @@ def select_function_points(
         excl_line_ranges = [excl for excl in exclude if isinstance(excl, _LineRange)]
         if len(excl_line_ranges) > 100:
             print(
-                (
-                    "There are much more --exclude items then expected: {0}. "
+                
+                    f"There are much more --exclude items then expected: {len(excl_line_ranges)}. "
                     "Please consider filing an issue by visiting this link: "
                     "https://github.com/Parquery/icontract/issues/new"
                     "?title=Use+interval+tree"
-                    "&body=We+had+{0}+exclude+line+ranges+in+pyicontract-hypothesis."
-                ).format(len(excl_line_ranges))
+                    f"&body=We+had+{len(excl_line_ranges)}+exclude+line+ranges+in+pyicontract-hypothesis."
+                
             )
 
         if len(excl_line_ranges) > 0:

@@ -8,22 +8,20 @@ import pathlib
 import re
 import textwrap
 from typing import (
-    Mapping,
     Any,
-    Tuple,
-    Optional,
-    List,
-    MutableMapping,
     Dict,
+    List,
+    Mapping,
+    Optional,
     TextIO,
+    Tuple,
 )
 
 import hypothesis
-import hypothesis._settings
 import hypothesis.errors
 
 import icontract_hypothesis
-import icontract_hypothesis.pyicontract_hypothesis._general as _general
+from icontract_hypothesis.pyicontract_hypothesis import _general
 
 
 class Params:
@@ -161,10 +159,8 @@ def parse_params(args: argparse.Namespace) -> Tuple[Optional[Params], List[str]]
             mtch = _SETTING_STATEMENT_RE.match(statement)
             if not mtch:
                 errors.append(
-                    "Invalid setting statement {}. Expected statement to match {}, "
-                    "but got: {}".format(
-                        i + 1, _SETTING_STATEMENT_RE.pattern, statement
-                    )
+                    f"Invalid setting statement {i + 1}. Expected statement to match {_SETTING_STATEMENT_RE.pattern}, "
+                    f"but got: {statement}"
                 )
 
                 return None, errors
@@ -176,9 +172,7 @@ def parse_params(args: argparse.Namespace) -> Tuple[Optional[Params], List[str]]
                 value = json.loads(value_str)
             except json.decoder.JSONDecodeError as error:
                 errors.append(
-                    "Failed to parse the value of the setting {}: {}".format(
-                        identifier, error
-                    )
+                    f"Failed to parse the value of the setting {identifier}: {error}"
                 )
                 return None, errors
 
@@ -239,9 +233,9 @@ def _test_function_point(
         wrapped()
     except hypothesis.errors.FailedHealthCheck as err:
         return [
-            f"Failed to test the function: "
+            (f"Failed to test the function: "
             f"{func.__name__} from {inspect.getfile(func)} "
-            f"due to the failed Hypothesis health check: {err}"
+            f"due to the failed Hypothesis health check: {err}")
         ]
 
     return []
@@ -263,10 +257,10 @@ def _inspect_test_function_point(
         strategy = icontract_hypothesis.infer_strategy(func=func)
     except Exception as error:
         errors.append(
-            (
-                "Inference of the search strategy failed for the function: {}. "
-                "The error was: {}"
-            ).format(func, error)
+            
+                f"Inference of the search strategy failed for the function: {func}. "
+                f"The error was: {error}"
+            
         )
         return "", errors
 
@@ -281,7 +275,7 @@ def _inspect_test_function_point(
 
     if settings_parsing and len(settings_parsing.parsed_kwargs) > 0:
         if len(settings_parsing.parsed_kwargs) == 1:
-            identifier, value = list(settings_parsing.parsed_kwargs.items())[0]
+            identifier, value = next(iter(settings_parsing.parsed_kwargs.items()))
 
             settings_str = f"hypothesis.settings({identifier}={value})"
         else:
@@ -308,12 +302,12 @@ def test(general: _general.Params, command: Params, stdout: TextIO) -> List[str]
     Return errors if any.
     """
     if not command.path.exists():
-        return ["The file to be tested does not exist: {}".format(command.path)]
+        return [f"The file to be tested does not exist: {command.path}"]
 
     try:
         source_code = command.path.read_text(encoding="utf-8")
     except Exception as error:
-        return ["Failed to read the file {}: {}".format(command.path, error)]
+        return [f"Failed to read the file {command.path}: {error}"]
 
     mod, errors = _general.load_module_from_source_file(path=command.path)
     if errors:

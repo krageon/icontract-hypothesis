@@ -7,7 +7,11 @@ import pathlib
 import re
 import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
+
+import icontract
 
 from icontract_hypothesis.pyicontract_hypothesis import _general, _ghostwrite, main
 
@@ -25,8 +29,8 @@ class TestParsingOfParameters(unittest.TestCase):
         ]
         # fmt: on
         parser = main._make_argument_parser()
-        args, out, err = main._parse_args(parser=parser, argv=argv)
-        assert args is not None, "Failed to parse argv {!r}: {}".format(argv, err)
+        args, _out, err = main._parse_args(parser=parser, argv=argv)
+        assert args is not None, f"Failed to parse argv {argv!r}: {err}"
 
         general, errs = _general.parse_params(args=args)
 
@@ -55,8 +59,8 @@ class TestParsingOfParameters(unittest.TestCase):
         ]
         # fmt: on
         parser = main._make_argument_parser()
-        args, out, err = main._parse_args(parser=parser, argv=argv)
-        assert args is not None, "Failed to parse argv {!r}: {}".format(argv, err)
+        args, _out, err = main._parse_args(parser=parser, argv=argv)
+        assert args is not None, f"Failed to parse argv {argv!r}: {err}"
 
         general, errs = _general.parse_params(args=args)
 
@@ -152,6 +156,101 @@ class TestQualifiedModuleNameFromPath(unittest.TestCase):
             self.assertEqual("some_submodule", qualified_name)
 
 
+class TestGhostwriteFallback(unittest.TestCase):
+    def assert_generated_test_runs(self, func, fallback):
+        module = types.ModuleType("condition_sample")
+        setattr(module, func.__name__, func)
+        point = _general.FunctionPoint(first_row=1, last_row=1, func=func)
+        point.func_name = func.__name__
+        code, errors = _ghostwrite._ghostwrite_for_function_points(
+            points=[point], module_name=module.__name__, explicit=True, bare=False
+        )
+        self.assertEqual([], errors)
+        if fallback:
+            self.assertIn("icontract_hypothesis.test_with_inferred_strategy(", code)
+            self.assertNotIn("_condition(", code)
+        else:
+            self.assertIn("@given(", code)
+            self.assertIn(
+                "from hypothesis.strategies import fixed_dictionaries, integers", code
+            )
+
+        namespace = {"__name__": "generated_test"}
+        with mock.patch.dict(sys.modules, {module.__name__: module}):
+            exec(compile(code, "<generated-test>", "exec"), namespace)
+            case = namespace["TestWithInferredStrategies"]()
+            getattr(case, "test_" + func.__name__)()
+
+    def test_source_free_condition(self):
+        condition = eval(compile("lambda x, y: x < y", "<source-free>", "eval"))
+
+        @icontract.require(condition)
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=True)
+
+    def test_closure(self):
+        limit = 0
+
+        @icontract.require(lambda x, y: limit < x < y)
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=True)
+
+    def test_named_condition(self):
+        def condition(x, y):
+            return x < y
+
+        @icontract.require(condition)
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=True)
+
+    def test_explicit_condition(self):
+        @icontract.require(lambda x, y: x < y)
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=False)
+
+    def test_nested_scope(self):
+        @icontract.require(lambda x, y: (lambda x: x > 0)(y))
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=False)
+
+    def test_mixed_explicit_and_fallback_output(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        exit_code = main.run(
+            argv=[
+                "ghostwrite",
+                "--module",
+                "test_samples.pyicontract_hypothesis.sample_module",
+                "--explicit",
+            ],
+            stdout=stdout,
+            stderr=stderr,
+        )
+        self.assertEqual(0, exit_code, stderr.getvalue())
+        namespace = {"__name__": "generated_test"}
+        exec(compile(stdout.getvalue(), "<generated-test>", "exec"), namespace)
+        case = namespace["TestWithInferredStrategies"]()
+        case.test_some_func()
+        case.test_another_func()
+        case.test_yet_another_func()
+
+    def test_global_in_nested_scope(self):
+        @icontract.require(lambda x, y: (lambda: sys.maxsize > x < y)())
+        def func(x: int, y: int):
+            pass
+
+        self.assert_generated_test_runs(func, fallback=True)
+
+
 class TestGhostwrite(unittest.TestCase):
     def test_path(self) -> None:
         this_dir = pathlib.Path(os.path.realpath(__file__)).parent
@@ -191,7 +290,7 @@ class TestGhostwrite(unittest.TestCase):
         expected_pth = (
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
-            / ("for_{}.txt".format(TestGhostwrite.test_path.__name__))
+            / (f"for_{TestGhostwrite.test_path.__name__}.txt")
         )
 
         expected = expected_pth.read_text()
@@ -219,10 +318,10 @@ class TestGhostwrite(unittest.TestCase):
         expected_pth = (
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
-            / ("for_{}.txt".format(TestGhostwrite.test_bare_and_explicit.__name__))
+            / (f"for_{TestGhostwrite.test_bare_and_explicit.__name__}.txt")
         )
 
-        expected = expected_pth.read_text()
+        expected = expected_pth.read_text().rstrip("\n")
         self.assertEqual(expected, stdout.getvalue())
 
     def test_bare_and_non_explicit(self) -> None:
@@ -246,7 +345,7 @@ class TestGhostwrite(unittest.TestCase):
         expected_pth = (
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
-            / ("for_{}.txt".format(TestGhostwrite.test_bare_and_non_explicit.__name__))
+            / (f"for_{TestGhostwrite.test_bare_and_non_explicit.__name__}.txt")
         )
 
         expected = expected_pth.read_text()
@@ -273,7 +372,7 @@ class TestGhostwrite(unittest.TestCase):
         expected_pth = (
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
-            / ("for_{}.py".format(TestGhostwrite.test_non_bare_and_explicit.__name__))
+            / (f"for_{TestGhostwrite.test_non_bare_and_explicit.__name__}.py")
         )
 
         expected = expected_pth.read_text()
@@ -300,9 +399,7 @@ class TestGhostwrite(unittest.TestCase):
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
             / (
-                "for_{}.py".format(
-                    TestGhostwrite.test_non_bare_and_non_explicit.__name__
-                )
+                f"for_{TestGhostwrite.test_non_bare_and_non_explicit.__name__}.py"
             )
         )
 
@@ -334,9 +431,7 @@ class TestGhostwrite(unittest.TestCase):
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
             / (
-                "for_{}.py".format(
-                    TestGhostwrite.test_well_formatted_with_two_arguments.__name__
-                )
+                f"for_{TestGhostwrite.test_well_formatted_with_two_arguments.__name__}.py"
             )
         )
 

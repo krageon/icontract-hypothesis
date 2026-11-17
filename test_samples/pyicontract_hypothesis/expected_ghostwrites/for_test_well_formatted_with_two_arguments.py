@@ -4,6 +4,8 @@ import unittest
 
 from hypothesis import given
 
+from hypothesis.strategies import integers
+
 import test_samples.pyicontract_hypothesis.well_formatted_with_two_arguments
 
 

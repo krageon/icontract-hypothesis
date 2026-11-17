@@ -4,7 +4,6 @@
 import os
 import sys
 import timeit
-from typing import List
 
 import deal
 import dpcontracts
@@ -27,7 +26,6 @@ def benchmark_icontract_assume_preconditions(arg_count: int = 1) -> None:
         def some_func(a: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         assume_preconditions = icontract_hypothesis.make_assume_preconditions(some_func)
 
@@ -46,7 +44,6 @@ def benchmark_icontract_assume_preconditions(arg_count: int = 1) -> None:
         def some_func(a: int, b: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         assume_preconditions = icontract_hypothesis.make_assume_preconditions(some_func)
 
@@ -68,7 +65,6 @@ def benchmark_icontract_assume_preconditions(arg_count: int = 1) -> None:
         def some_func(a: int, b: int, c: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         assume_preconditions = icontract_hypothesis.make_assume_preconditions(some_func)
 
@@ -85,7 +81,7 @@ def benchmark_icontract_assume_preconditions(arg_count: int = 1) -> None:
             some_func(a, b, c)
 
     else:
-        raise NotImplementedError("arg_count {}".format(arg_count))
+        raise NotImplementedError(f"arg_count {arg_count}")
 
     execute()
 
@@ -103,7 +99,6 @@ def benchmark_icontract_inferred_strategy(arg_count: int = 1) -> None:
         def some_func(a: int) -> None:
             nonlocal count
             count += 1
-            pass
 
     elif arg_count == 2:
 
@@ -112,7 +107,6 @@ def benchmark_icontract_inferred_strategy(arg_count: int = 1) -> None:
         def some_func(a: int, b: int) -> None:
             nonlocal count
             count += 1
-            pass
 
     elif arg_count == 3:
 
@@ -122,10 +116,9 @@ def benchmark_icontract_inferred_strategy(arg_count: int = 1) -> None:
         def some_func(a: int, b: int, c: int) -> None:
             nonlocal count
             count += 1
-            pass
 
     else:
-        raise NotImplementedError("arg_count {}".format(arg_count))
+        raise NotImplementedError(f"arg_count {arg_count}")
 
     icontract_hypothesis.test_with_inferred_strategy(some_func)
 
@@ -143,7 +136,6 @@ def benchmark_dpcontracts(arg_count: int = 1) -> None:
         def some_func(a: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         @hypothesis.settings(
             suppress_health_check=(hypothesis.HealthCheck.filter_too_much,)
@@ -159,7 +151,6 @@ def benchmark_dpcontracts(arg_count: int = 1) -> None:
         def some_func(a: int, b: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         @hypothesis.settings(
             suppress_health_check=(hypothesis.HealthCheck.filter_too_much,)
@@ -178,7 +169,6 @@ def benchmark_dpcontracts(arg_count: int = 1) -> None:
         def some_func(a: int, b: int, c: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         @hypothesis.settings(
             suppress_health_check=(hypothesis.HealthCheck.filter_too_much,)
@@ -192,7 +182,7 @@ def benchmark_dpcontracts(arg_count: int = 1) -> None:
             hypothesis.extra.dpcontracts.fulfill(some_func)(a, b, c)
 
     else:
-        raise NotImplementedError("arg_count {}".format(arg_count))
+        raise NotImplementedError(f"arg_count {arg_count}")
 
     execute()
 
@@ -210,7 +200,6 @@ def benchmark_deal(arg_count: int = 1) -> None:
         def some_func(a: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         for case in deal.cases(some_func, count=100):
             case()
@@ -222,7 +211,6 @@ def benchmark_deal(arg_count: int = 1) -> None:
         def some_func(a: int, b: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         for case in deal.cases(some_func, count=100):
             case()
@@ -235,12 +223,11 @@ def benchmark_deal(arg_count: int = 1) -> None:
         def some_func(a: int, b: int, c: int) -> None:
             nonlocal count
             count += 1
-            pass
 
         for case in deal.cases(some_func, count=100):
             case()
     else:
-        raise NotImplementedError("arg_count {}".format(arg_count))
+        raise NotImplementedError(f"arg_count {arg_count}")
 
     assert count == 100
 
@@ -272,8 +259,8 @@ def measure_functions() -> None:
     for arg_count in [1, 2, 3]:
         for i, func in enumerate(funcs):
             duration = timeit.timeit(
-                "{}(arg_count={})".format(func, arg_count),
-                setup="from __main__ import {}".format(func),
+                f"{func}(arg_count={arg_count})",
+                setup=f"from __main__ import {func}",
                 number=number,
             )
 
@@ -284,10 +271,10 @@ def measure_functions() -> None:
         for func, duration in zip(funcs, durations):
             # yapf: disable
             table.append([
-                '`{}`'.format(func),
-                '{:.2f} s'.format(duration),
-                '{:.2f} ms'.format(duration * 1000 / number),
-                '{:.0f}%'.format(duration * 100 / durations[0])
+                f'`{func}`',
+                f'{duration:.2f} s',
+                f'{duration * 1000 / number:.2f} ms',
+                f'{duration * 100 / durations[0]:.0f}%'
             ])
             # yapf: enable
 
@@ -300,7 +287,7 @@ def measure_functions() -> None:
         # yapf: enable
 
         writeln_utf8()
-        writeln_utf8("Argument count: {}".format(arg_count))
+        writeln_utf8(f"Argument count: {arg_count}")
         writeln_utf8()
         writeln_utf8(table_str)
 

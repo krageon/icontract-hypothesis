@@ -1,13 +1,15 @@
 """Provide functionality for ghostwriting test modules."""
 
 import argparse
-import enum
+import ast
+import builtins
 import inspect
 import pathlib
 import re
+import symtable
 import sys
 import textwrap
-from typing import Optional, Tuple, List, overload, Union, Callable, Any, cast
+from typing import Any, Callable, List, Optional, Tuple, Union, overload
 
 import hypothesis.strategies
 import hypothesis.strategies._internal.collections
@@ -16,7 +18,7 @@ import icontract._checkers
 import icontract._represent
 
 import icontract_hypothesis
-import icontract_hypothesis.pyicontract_hypothesis._general as _general
+from icontract_hypothesis.pyicontract_hypothesis import _general
 
 
 @icontract.invariant(lambda self: (self.module_name is None) ^ (self.path is None))
@@ -113,16 +115,16 @@ def _indent_but_first(
         return result
 
     else:
-        raise AssertionError("Unhandled input: {}".format(lines))
+        raise TypeError(f"Unhandled input: {lines}")
 
 
 def _ghostwrite_condition_code(condition: Callable[..., Any]) -> str:
     """Ghostwrite the code representing the condition in an assumption."""
     if not icontract._represent.is_lambda(a_function=condition):
         sign = inspect.signature(condition)
-        args = ", ".join(param for param in sign.parameters.keys())
+        args = ", ".join(param for param in sign.parameters)
 
-        return "{}({})".format(condition.__name__, args)
+        return f"{condition.__name__}({args})"
 
     # We need to extract the source code corresponding to the decorator since
     # inspect.getsource() is broken with lambdas.
@@ -141,12 +143,36 @@ def _ghostwrite_condition_code(condition: Callable[..., Any]) -> str:
     )
 
     assert lambda_inspection is not None, (
-        "Expected lambda_inspection to be non-None if is_lambda is True on: {}".format(
-            condition
-        )
+        f"Expected lambda_inspection to be non-None if is_lambda is True on: {condition}"
     )
 
     return lambda_inspection.text
+
+
+def _can_render_condition(condition: Callable[..., Any]) -> bool:
+    """Check whether a lambda can be emitted without external bindings."""
+    inspection = icontract_hypothesis._inspect_condition(condition)
+    if inspection is None:
+        return False
+
+    bindings = inspect.getclosurevars(condition)
+    if bindings.nonlocals or bindings.globals or bindings.unbound:
+        return False
+
+    # getclosurevars only checks the outer function. Inspect nested scopes too.
+    source = inspection.atok.get_text(inspection.node)
+    scopes = [symtable.symtable(source, "<condition>", "eval")]
+    while scopes:
+        scope = scopes.pop()
+        for symbol in scope.get_symbols():
+            if symbol.is_global() and (
+                symbol.get_name() in condition.__globals__
+                or not hasattr(builtins, symbol.get_name())
+            ):
+                return False
+        scopes.extend(scope.get_children())
+
+    return True
 
 
 @icontract.ensure(lambda result: len(result[1]) > 0 or not result[0].endswith("\n"))
@@ -162,6 +188,17 @@ def _ghostwrite_test_function(
     """
     test_func = ""
 
+    if explicit:
+        checker = icontract._checkers.find_checker(point.func)
+        conjunctions = (
+            getattr(checker, "__preconditions__", []) if checker is not None else []
+        )
+        explicit = all(
+            _can_render_condition(contract.condition)
+            for conjunction in conjunctions
+            for contract in conjunction
+        )
+
     if not explicit:
         test_func = textwrap.dedent(
             f"""\
@@ -176,30 +213,42 @@ def _ghostwrite_test_function(
         strategy = icontract_hypothesis.infer_strategy(func=point.func)
     except Exception as err:
         return "", [
-            f"Failed to infer a search strategy for the function "
+            (f"Failed to infer a search strategy for the function "
             f"on line {point.first_row}: {point.func_name}. "
-            f"The exception was:\n{err}"
+            f"The exception was:\n{err}")
         ]
 
     # If there is no filtering on multiple arguments, unpack the argument strategies and
     # re-pack them into a hypothesis.given decorator with argument names as keyword arguments
     arguments_unpacked = False
+    collections = hypothesis.strategies._internal.collections
+    fixed_dict_type = getattr(
+        collections,
+        "FixedDictStrategy",
+        getattr(collections, "FixedKeysDictStrategy", ()),
+    )
 
     if (
         isinstance(strategy, hypothesis.strategies._internal.lazy.LazyStrategy)
-        and isinstance(
-            strategy.wrapped_strategy,
-            hypothesis.strategies._internal.collections.FixedDictStrategy,
-        )
-        and len(strategy.wrapped_strategy.mapping.keys()) > 0
+        and isinstance(strategy.wrapped_strategy, fixed_dict_type)
     ):
-        arguments_unpacked = True
-
         fixed_dict_st = strategy.wrapped_strategy
+        if hasattr(fixed_dict_st, "mapping"):
+            argument_strategies = list(fixed_dict_st.mapping.items())
+        else:
+            # Hypothesis releases compatible with Python 3.8 use this layout.
+            argument_strategies = list(
+                zip(fixed_dict_st.keys, fixed_dict_st.mapped_strategy.element_strategies)
+            )
+    else:
+        argument_strategies = []
+
+    if argument_strategies:
+        arguments_unpacked = True
 
         given_args_lines = []  # type: List[str]
 
-        for arg_name, arg_strategy in fixed_dict_st.mapping.items():
+        for arg_name, arg_strategy in argument_strategies:
             line = f"{arg_name}={arg_strategy}"
             assert not line.endswith("\n")
             given_args_lines.append(line)
@@ -273,10 +322,18 @@ def _ghostwrite_for_function_points(
         return "\n\n".join(test_funcs), []
 
     blocks = []  # type: List[str]
+    strategy_names = sorted(
+        {
+            node.id
+            for func in test_funcs
+            for node in ast.walk(ast.parse(func))
+            if isinstance(node, ast.Name) and node.id in hypothesis.strategies.__all__
+        }
+    )
 
     header = "\n\n".join(
         [
-            '"""Test {} with inferred Hypothesis strategies."""'.format(module_name),
+            f'"""Test {module_name} with inferred Hypothesis strategies."""',
             "import unittest",
         ]
         + (
@@ -284,18 +341,32 @@ def _ghostwrite_for_function_points(
             if explicit
             else ["import icontract_hypothesis"]
         )
-        + ["import {}".format(module_name)]
+        + (
+            ["from hypothesis.strategies import {}".format(", ".join(strategy_names))]
+            if strategy_names
+            else []
+        )
+        + (
+            ["import icontract_hypothesis"]
+            if explicit
+            and any(
+                "icontract_hypothesis.test_with_inferred_strategy(" in func
+                for func in test_funcs
+            )
+            else []
+        )
+        + [f"import {module_name}"]
     )
     blocks.append(header)
 
     if len(points) == 0:
         blocks.append(
             textwrap.dedent(
-                '''\
+                f'''\
                 class TestWithInferredStrategies(unittest.TestCase):
-                    """Test all functions from {0} with inferred Hypothesis strategies."""
-                    # Either there are no functions in {0} or all the functions were excluded.
-                '''.format(module_name)
+                    """Test all functions from {module_name} with inferred Hypothesis strategies."""
+                    # Either there are no functions in {module_name} or all the functions were excluded.
+                '''
             ).strip()
         )
     else:

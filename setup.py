@@ -7,7 +7,7 @@ https://github.com/pypa/sampleproject
 import os
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 # pylint: disable=redefined-builtin
 
@@ -40,7 +40,6 @@ setup(
     keywords="design-by-contract contracts automatic testing property-based",
     packages=find_packages(exclude=["tests"]),
     install_requires=install_requires,
-    # fmt: off
     extras_require={
         "dev": [
             "black==22.3.0",
@@ -56,7 +55,6 @@ setup(
             'py-cpuinfo>=5,<6',
         ] + (['deal==4.4.0'] if sys.version_info >= (3, 8) else []),
     },
-    # fmt: on
     py_modules=["icontract_hypothesis"],
     package_data={"icontract_hypothesis": ["py.typed"]},
     data_files=[(".", ["LICENSE", "README.rst", "requirements.txt"])],

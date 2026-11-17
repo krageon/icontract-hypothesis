@@ -7,7 +7,7 @@ import re
 import unittest
 from typing import Pattern
 
-import icontract_hypothesis.pyicontract_hypothesis._general as _general
+from icontract_hypothesis.pyicontract_hypothesis import _general
 
 
 class TestLineRangeRe(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestLineRangeRe(unittest.TestCase):
 
     def test_no_match(self) -> None:
         mtch = _general._LINE_RANGE_RE.match("123aa")
-        assert mtch is None, "Expected no match, but got: {}".format(mtch)
+        assert mtch is None, f"Expected no match, but got: {mtch}"
 
 
 class TestParsingOfPointSpecs(unittest.TestCase):
@@ -79,15 +79,15 @@ class TestSelectFunctionPoints(unittest.TestCase):
         self.assertListEqual([], errors)
         assert mod is not None
 
-        points, errors = _general.select_function_points(
+        _points, errors = _general.select_function_points(
             source_code=path.read_text(), mod=mod, include=[], exclude=[]
         )
 
         self.assertListEqual(
             [
-                "Unexpected directive on line 8. "
+                ("Unexpected directive on line 8. "
                 "Expected '# pyicontract-hypothesis: (disable|enable)', "
-                "but got: # pyicontract-hypothesis: disable-once"
+                "but got: # pyicontract-hypothesis: disable-once")
             ],
             errors,
         )

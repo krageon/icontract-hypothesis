@@ -7,7 +7,7 @@ import pathlib
 import re
 import subprocess
 import sys
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import icontract
 
@@ -50,14 +50,14 @@ def parse_readme(lines: List[str]) -> Tuple[List[Block], List[str]]:
         mtch = HELP_STARTS_RE.match(lines[i])
         if mtch:
             command = mtch.group("command")
-            help_ends = ".. Help ends: {}".format(command)
+            help_ends = f".. Help ends: {command}"
             try:
                 end_index = lines.index(help_ends, i)
             except ValueError:
                 end_index = -1
 
             if end_index == -1:
-                return [], ["Could not find the end marker {!r}".format(help_ends)]
+                return [], [f"Could not find the end marker {help_ends!r}"]
 
             blocks.append(
                 Block(command=command, start_line_idx=i + 1, end_line_idx=end_index)
@@ -121,16 +121,16 @@ def diff(got_lines: List[str], expected_lines: List[str]) -> Optional[str]:
     result.append("Expected:")
     for i, line in enumerate(expected_lines):
         if i >= len(got_lines) or line != got_lines[i]:
-            print("DIFF: {:2d}: {!r}".format(i, line))
+            print(f"DIFF: {i:2d}: {line!r}")
         else:
-            print("OK  : {:2d}: {!r}".format(i, line))
+            print(f"OK  : {i:2d}: {line!r}")
 
     result.append("Got:")
     for i, line in enumerate(got_lines):
         if i >= len(expected_lines) or line != expected_lines[i]:
-            print("DIFF: {:2d}: {!r}".format(i, line))
+            print(f"DIFF: {i:2d}: {line!r}")
         else:
-            print("OK  : {:2d}: {!r}".format(i, line))
+            print(f"OK  : {i:2d}: {line!r}")
 
     return "\n".join(result)
 
@@ -155,7 +155,7 @@ def main() -> int:
 
     blocks, errors = parse_readme(lines=lines)
     if errors:
-        print("One or more errors in {}:".format(pth), file=sys.stderr)
+        print(f"One or more errors in {pth}:", file=sys.stderr)
         for error in errors:
             print(error, file=sys.stderr)
 

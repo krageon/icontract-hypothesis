@@ -11,7 +11,7 @@ import uuid
 
 import hypothesis
 
-from icontract_hypothesis.pyicontract_hypothesis import _general, main, _test
+from icontract_hypothesis.pyicontract_hypothesis import _general, _test, main
 
 
 class TestParsingOfParameters(unittest.TestCase):
@@ -28,8 +28,8 @@ class TestParsingOfParameters(unittest.TestCase):
         # fmt: on
 
         parser = main._make_argument_parser()
-        args, out, err = main._parse_args(parser=parser, argv=argv)
-        assert args is not None, "Failed to parse argv {!r}: {}".format(argv, err)
+        args, _out, err = main._parse_args(parser=parser, argv=argv)
+        assert args is not None, f"Failed to parse argv {argv!r}: {err}"
 
         general, errs = _general.parse_params(args=args)
 
@@ -70,13 +70,13 @@ class TestParsingOfParameters(unittest.TestCase):
         # fmt: on
 
         parser = main._make_argument_parser()
-        args, out, err = main._parse_args(parser=parser, argv=argv)
-        assert args is not None, "Failed to parse argv {!r}: {}".format(argv, err)
+        args, _out, err = main._parse_args(parser=parser, argv=argv)
+        assert args is not None, f"Failed to parse argv {argv!r}: {err}"
 
-        general, errs = _general.parse_params(args=args)
+        _, errs = _general.parse_params(args=args)
         self.assertListEqual([], errs)
 
-        test, errs = _test.parse_params(args=args)
+        _, errs = _test.parse_params(args=args)
         self.assertListEqual(["Invalid Hypothesis setting: 'totally_invalid'"], errs)
 
     def test_invalid_settings(self) -> None:
@@ -89,17 +89,17 @@ class TestParsingOfParameters(unittest.TestCase):
         # fmt: on
 
         parser = main._make_argument_parser()
-        args, out, err = main._parse_args(parser=parser, argv=argv)
-        assert args is not None, "Failed to parse argv {!r}: {}".format(argv, err)
+        args, _out, err = main._parse_args(parser=parser, argv=argv)
+        assert args is not None, f"Failed to parse argv {argv!r}: {err}"
 
-        general, errs = _general.parse_params(args=args)
+        _, errs = _general.parse_params(args=args)
         self.assertListEqual([], errs)
 
-        test, errs = _test.parse_params(args=args)
+        _, errs = _test.parse_params(args=args)
         self.assertListEqual(
             [
-                "Invalid Hypothesis settings: max_examples=-1 must be at least one. If you "
-                "want to disable generation entirely, use phases=[Phase.explicit] instead."
+                ("Invalid Hypothesis settings: max_examples=-1 must be at least one. If you "
+                "want to disable generation entirely, use phases=[Phase.explicit] instead.")
             ],
             errs,
         )
@@ -128,10 +128,10 @@ class TestTest(unittest.TestCase):
             )
             self.assertListEqual([], test_errors)
 
-        some_func_calls = getattr(mod, "SOME_FUNC_CALLS")
+        some_func_calls = mod.SOME_FUNC_CALLS
         self.assertEqual(100, some_func_calls)
 
-        another_func_calls = getattr(mod, "ANOTHER_FUNC_CALLS")
+        another_func_calls = mod.ANOTHER_FUNC_CALLS
         self.assertEqual(100, another_func_calls)
 
     def test_settings(self) -> None:
@@ -162,10 +162,10 @@ class TestTest(unittest.TestCase):
             )
             self.assertListEqual([], test_errors)
 
-        some_func_calls = getattr(mod, "SOME_FUNC_CALLS")
+        some_func_calls = mod.SOME_FUNC_CALLS
         self.assertEqual(10, some_func_calls)
 
-        another_func_calls = getattr(mod, "ANOTHER_FUNC_CALLS")
+        another_func_calls = mod.ANOTHER_FUNC_CALLS
         self.assertEqual(10, another_func_calls)
 
 
@@ -173,7 +173,7 @@ class TestTestViaSmoke(unittest.TestCase):
     """Perform smoke testing of the "test" command."""
 
     def test_nonexisting_file(self) -> None:
-        path = "doesnt-exist.{}".format(uuid.uuid4())
+        path = f"doesnt-exist.{uuid.uuid4()}"
         argv = ["test", "--path", path]
 
         stdout = io.StringIO()
@@ -182,7 +182,7 @@ class TestTestViaSmoke(unittest.TestCase):
         exit_code = main.run(argv=argv, stdout=stdout, stderr=stderr)
 
         self.assertEqual(
-            "The file to be tested does not exist: {}".format(path),
+            f"The file to be tested does not exist: {path}",
             stderr.getvalue().strip(),
         )
         self.assertEqual(exit_code, 1)

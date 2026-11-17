@@ -162,11 +162,13 @@ class TestGeneral(unittest.TestCase):
 
         # The preconditions were picked s.t. to also test that we can recompute everything.
         @icontract.require(
-            lambda x: x
-            < (
-                SOME_DATE
-                if SOME_DATE > datetime.date(2020, 1, 1)
-                else datetime.date(2020, 12, 5)
+            lambda x: (
+                x
+                < (
+                    SOME_DATE
+                    if SOME_DATE > datetime.date(2020, 1, 1)
+                    else datetime.date(2020, 12, 5)
+                )
             )
         )
         def some_func(x: datetime.date) -> None:
@@ -274,6 +276,7 @@ class TestInt(unittest.TestCase):
             pass
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
+
         self.assertEqual(
             "fixed_dictionaries({'x': integers(max_value=99)})",
             str(strategy),
@@ -372,7 +375,7 @@ class TestFraction(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': fractions(min_value=Fraction(1, 2))})",
+            "fixed_dictionaries({'x': fractions(min_value=Fraction(1, 2))})",
             str(strategy),
         )
 
@@ -400,7 +403,7 @@ class TestFraction(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': fractions(max_value=Fraction(1, 2))})",
+            "fixed_dictionaries({'x': fractions(max_value=Fraction(1, 2))})",
             str(strategy),
         )
 
@@ -610,7 +613,7 @@ class TestTime(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': times(min_value=datetime.time(1, 2, 3, 4))})",
+            "fixed_dictionaries({'x': times(min_value=datetime.time(1, 2, 3, 4))})",
             str(strategy),
         )
 
@@ -623,7 +626,7 @@ class TestTime(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': times(min_value=datetime.time(1, 2, 3, 5))})",
+            "fixed_dictionaries({'x': times(min_value=datetime.time(1, 2, 3, 5))})",
             str(strategy),
         )
 
@@ -636,7 +639,7 @@ class TestTime(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': times(max_value=datetime.time(1, 2, 3, 4))})",
+            "fixed_dictionaries({'x': times(max_value=datetime.time(1, 2, 3, 4))})",
             str(strategy),
         )
 
@@ -649,7 +652,7 @@ class TestTime(unittest.TestCase):
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(
-            "fixed_dictionaries({" "'x': times(max_value=datetime.time(1, 2, 3, 3))})",
+            "fixed_dictionaries({'x': times(max_value=datetime.time(1, 2, 3, 3))})",
             str(strategy),
         )
 

@@ -1043,6 +1043,7 @@ def _rewrite_condition_as_filter_on_kwargs(
             )
 
         if opcode == opcode_load_global:
+            #if lambda_code.co_names
             name = lambda_code.co_names[oparg]
             if name in closured_vars:
                 new_bytecode.write(
@@ -1065,33 +1066,14 @@ def _rewrite_condition_as_filter_on_kwargs(
 
     new_bytecode.write(bytecode[-2:])
 
-    if sys.version_info < (3, 8):
-        new_lambda_code = types.CodeType(
-            lambda_code.co_argcount,
-            lambda_code.co_kwonlyargcount,
-            lambda_code.co_nlocals,
-            lambda_code.co_stacksize,
-            lambda_code.co_flags,
-            new_bytecode.getvalue(),
-            lambda_code.co_consts,
-            contract.condition.__code__.co_names,
-            lambda_code.co_varnames,
-            "<recompiled by icontract-hypothesis>",
-            "<lambda>",
-            lambda_code.co_firstlineno,
-            lambda_code.co_lnotab,
-            contract.condition.__code__.co_freevars,
-            lambda_code.co_cellvars,
-        )
-    else:
-        assert isinstance(lambda_code, types.CodeType)
-        new_lambda_code = lambda_code.replace(
-            co_code=new_bytecode.getvalue(),
-            co_names=contract.condition.__code__.co_names,
-            co_filename="<recompiled by icontract-hypothesis>",
-            co_name="<lambda>",
-            co_freevars=contract.condition.__code__.co_freevars,
-        )
+    assert isinstance(lambda_code, types.CodeType)
+    new_lambda_code = lambda_code.replace(
+        co_code=new_bytecode.getvalue(),
+        co_names=contract.condition.__code__.co_names,
+        co_filename="<recompiled by icontract-hypothesis>",
+        co_name="<lambda>",
+        co_freevars=contract.condition.__code__.co_freevars,
+    )
 
     recompiled_function = eval(  # pylint: disable=eval-used
         recompiled_code, dict(globals())

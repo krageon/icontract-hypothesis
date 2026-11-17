@@ -52,12 +52,12 @@ class TestParsingOfParameters(unittest.TestCase):
 
         self.assertListEqual(
             [hypothesis.HealthCheck.too_slow],
-            test.settings_parsing.product.__dict__["suppress_health_check"],
+            list(test.settings_parsing.product.suppress_health_check),
         )
 
         self.assertEqual(
             hypothesis.Verbosity.verbose,
-            test.settings_parsing.product.__dict__["verbosity"],
+            test.settings_parsing.product.verbosity,
         )
 
     def test_unknown_settings(self) -> None:
@@ -98,8 +98,8 @@ class TestParsingOfParameters(unittest.TestCase):
         test, errs = _test.parse_params(args=args)
         self.assertListEqual(
             [
-                "Invalid Hypothesis settings: max_examples=-1 should be at least one. You can "
-                "disable example generation with the `phases` setting instead."
+                "Invalid Hypothesis settings: max_examples=-1 must be at least one. If you "
+                "want to disable generation entirely, use phases=[Phase.explicit] instead."
             ],
             errs,
         )
@@ -135,9 +135,9 @@ class TestTest(unittest.TestCase):
         self.assertEqual(100, another_func_calls)
 
     def test_settings(self) -> None:
-        settings_parsing, errors = _test._parse_hypothesis_settings(
-            {"max_examples": 10}
-        )
+        settings_parsing, errors = _test._parse_hypothesis_settings({
+            "max_examples": 10
+        })
         self.assertListEqual([], errors)
         assert settings_parsing is not None
 
@@ -205,7 +205,9 @@ class TestTestViaSmoke(unittest.TestCase):
         self.assertEqual("", stderr.getvalue())
         self.assertEqual(exit_code, 0)
 
-        out = re.sub("\(time delta [^)]*\)", "(time delta <erased>)", stdout.getvalue())
+        out = re.sub(
+            r"\(time delta [^)]*\)", "(time delta <erased>)", stdout.getvalue()
+        )
 
         self.assertEqual(
             textwrap.dedent(

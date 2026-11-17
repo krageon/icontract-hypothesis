@@ -98,8 +98,10 @@ class TestParsingOfParameters(unittest.TestCase):
         _, errs = _test.parse_params(args=args)
         self.assertListEqual(
             [
-                ("Invalid Hypothesis settings: max_examples=-1 must be at least one. If you "
-                "want to disable generation entirely, use phases=[Phase.explicit] instead.")
+                (
+                    "Invalid Hypothesis settings: max_examples=-1 must be at least one. If you "
+                    "want to disable generation entirely, use phases=[Phase.explicit] instead."
+                )
             ],
             errs,
         )
@@ -135,9 +137,9 @@ class TestTest(unittest.TestCase):
         self.assertEqual(100, another_func_calls)
 
     def test_settings(self) -> None:
-        settings_parsing, errors = _test._parse_hypothesis_settings({
-            "max_examples": 10
-        })
+        settings_parsing, errors = _test._parse_hypothesis_settings(
+            {"max_examples": 10}
+        )
         self.assertListEqual([], errors)
         assert settings_parsing is not None
 

@@ -85,9 +85,11 @@ class TestSelectFunctionPoints(unittest.TestCase):
 
         self.assertListEqual(
             [
-                ("Unexpected directive on line 8. "
-                "Expected '# pyicontract-hypothesis: (disable|enable)', "
-                "but got: # pyicontract-hypothesis: disable-once")
+                (
+                    "Unexpected directive on line 8. "
+                    "Expected '# pyicontract-hypothesis: (disable|enable)', "
+                    "but got: # pyicontract-hypothesis: disable-once"
+                )
             ],
             errors,
         )

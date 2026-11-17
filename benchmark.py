@@ -72,9 +72,9 @@ def benchmark_against_others(repo_root: pathlib.Path, overwrite: bool) -> None:
                 f"Could not find the start marker for the benchmarks in the {readme_path}: {marker_end}"
             ) from exc
 
-        assert (
-            index_start < index_end
-        ), "Unexpected end marker before start marker for the benchmarks."
+        assert index_start < index_end, (
+            "Unexpected end marker before start marker for the benchmarks."
+        )
 
         lines = (
             lines[: index_start + 1]

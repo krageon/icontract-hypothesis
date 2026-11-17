@@ -3,4 +3,4 @@
 
 def square_greater_than_zero(x: int) -> bool:
     """Check nothing."""
-    return x ** 2 > 0
+    return x**2 > 0

@@ -7,9 +7,9 @@ def main() -> None:
     """Execute the test script."""
     import icontract
 
-    assert (
-        icontract._metaclass._CONTRACT_CLASSES is not None
-    ), "icontract has been unexpectedly already monkey-patched"
+    assert icontract._metaclass._CONTRACT_CLASSES is not None, (
+        "icontract has been unexpectedly already monkey-patched"
+    )
 
     class A(icontract.DBC):
         pass
@@ -18,9 +18,9 @@ def main() -> None:
 
     import icontract_hypothesis  # noqa: F401
 
-    assert not hasattr(
-        icontract._metaclass, "_CONTRACT_CLASSES"
-    ), "Expected _CONTRACT_CLASSES to be deleted upon monkey-patching"
+    assert not hasattr(icontract._metaclass, "_CONTRACT_CLASSES"), (
+        "Expected _CONTRACT_CLASSES to be deleted upon monkey-patching"
+    )
 
     assert A in hypothesis.strategies._internal.types._global_type_lookup
 

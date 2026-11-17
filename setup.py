@@ -4,6 +4,7 @@ See:
 https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
+
 import os
 import sys
 
@@ -49,11 +50,12 @@ setup(
             "coverage>=4.5.1,<5",
             "docutils>=0.14,<1",
             "pygments>=2,<3",
-            'dpcontracts==0.6.0',
-            'hypothesis[dpcontracts]>=5,<6',
-            'tabulate==0.8.7',
-            'py-cpuinfo>=5,<6',
-        ] + (['deal==4.4.0'] if sys.version_info >= (3, 8) else []),
+            "dpcontracts==0.6.0",
+            "hypothesis[dpcontracts]>=5,<6",
+            "tabulate==0.8.7",
+            "py-cpuinfo>=5,<6",
+        ]
+        + (["deal==4.4.0"] if sys.version_info >= (3, 8) else []),
     },
     py_modules=["icontract_hypothesis"],
     package_data={"icontract_hypothesis": ["py.typed"]},

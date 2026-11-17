@@ -34,7 +34,7 @@ class B:
 
 
 class C(icontract.DBC, Sequence[int]):
-    @icontract.require(lambda xs: all(x > -(2 ** 63) for x in xs))
+    @icontract.require(lambda xs: all(x > -(2**63) for x in xs))
     def __new__(cls, xs: Sequence[int]) -> "C":
         pass
 

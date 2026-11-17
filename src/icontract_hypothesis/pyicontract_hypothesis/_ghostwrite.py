@@ -213,9 +213,11 @@ def _ghostwrite_test_function(
         strategy = icontract_hypothesis.infer_strategy(func=point.func)
     except Exception as err:
         return "", [
-            (f"Failed to infer a search strategy for the function "
-            f"on line {point.first_row}: {point.func_name}. "
-            f"The exception was:\n{err}")
+            (
+                f"Failed to infer a search strategy for the function "
+                f"on line {point.first_row}: {point.func_name}. "
+                f"The exception was:\n{err}"
+            )
         ]
 
     # If there is no filtering on multiple arguments, unpack the argument strategies and
@@ -228,17 +230,18 @@ def _ghostwrite_test_function(
         getattr(collections, "FixedKeysDictStrategy", ()),
     )
 
-    if (
-        isinstance(strategy, hypothesis.strategies._internal.lazy.LazyStrategy)
-        and isinstance(strategy.wrapped_strategy, fixed_dict_type)
-    ):
+    if isinstance(
+        strategy, hypothesis.strategies._internal.lazy.LazyStrategy
+    ) and isinstance(strategy.wrapped_strategy, fixed_dict_type):
         fixed_dict_st = strategy.wrapped_strategy
         if hasattr(fixed_dict_st, "mapping"):
             argument_strategies = list(fixed_dict_st.mapping.items())
         else:
             # Hypothesis releases compatible with Python 3.8 use this layout.
             argument_strategies = list(
-                zip(fixed_dict_st.keys, fixed_dict_st.mapped_strategy.element_strategies)
+                zip(
+                    fixed_dict_st.keys, fixed_dict_st.mapped_strategy.element_strategies
+                )
             )
     else:
         argument_strategies = []

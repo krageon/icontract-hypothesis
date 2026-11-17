@@ -31,9 +31,7 @@ class TestAssumePreconditions(unittest.TestCase):
 
         assume_preconditions = icontract_hypothesis.make_assume_preconditions(some_func)
 
-        unsatisfied_assumption = (
-            None
-        )  # type: Optional[hypothesis.errors.UnsatisfiedAssumption]
+        unsatisfied_assumption = None  # type: Optional[hypothesis.errors.UnsatisfiedAssumption]
         try:
             assume_preconditions(x=-100)
         except hypothesis.errors.UnsatisfiedAssumption as err:

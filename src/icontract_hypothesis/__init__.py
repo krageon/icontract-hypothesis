@@ -291,9 +291,7 @@ def _infer_min_max_from_node(
         op0, op1 = node.ops
 
         # Match something like "0 < x < 100"
-        if isinstance(op0, (ast.Lt, ast.LtE)) and isinstance(
-            op1, (ast.Lt, ast.LtE)
-        ):
+        if isinstance(op0, (ast.Lt, ast.LtE)) and isinstance(op1, (ast.Lt, ast.LtE)):
             return _InferredMinMax(
                 min_value=left_value,
                 min_inclusive=isinstance(op0, ast.LtE),
@@ -302,9 +300,7 @@ def _infer_min_max_from_node(
             )
 
         # Match something like "0 > x > -100"
-        elif isinstance(op0, (ast.Gt, ast.GtE)) and isinstance(
-            op1, (ast.Gt, ast.GtE)
-        ):
+        elif isinstance(op0, (ast.Gt, ast.GtE)) and isinstance(op1, (ast.Gt, ast.GtE)):
             return _InferredMinMax(
                 min_value=right_value,
                 min_inclusive=isinstance(op1, ast.GtE),
@@ -733,10 +729,8 @@ def _infer_strategy_for_argument(
             and inferred.min_value > inferred.max_value
         ):
             raise ValueError(
-                
-                    f"The min and max values inferred for the argument {arg_name} could not be satisfied: "
-                    f"inferred min is {inferred.min_value}, inferred max is {inferred.max_value}. Are your preconditions correct?"
-                
+                f"The min and max values inferred for the argument {arg_name} could not be satisfied: "
+                f"inferred min is {inferred.min_value}, inferred max is {inferred.max_value}. Are your preconditions correct?"
             )
 
         strategy = _make_strategy_with_min_max_for_type(
@@ -842,15 +836,13 @@ def _condition_repr(
 
 
 @icontract.ensure(
-    lambda result:
-    hasattr(result, "__icontract_hypothesis_source_code__"),
-    "The attribute is available (we depend on monkey-patching Hypothesis reflection function)"
+    lambda result: hasattr(result, "__icontract_hypothesis_source_code__"),
+    "The attribute is available (we depend on monkey-patching Hypothesis reflection function)",
 )
 @icontract.ensure(
-    lambda result:
-    result.__name__ == "<lambda>",
+    lambda result: result.__name__ == "<lambda>",
     "Condition-as-filter-function is lambda "
-    "(even in cases where it calls a function as it is rewritten)"
+    "(even in cases where it calls a function as it is rewritten)",
 )
 def _rewrite_condition_as_filter_on_kwargs(
     contract: icontract._types.Contract,
@@ -1057,8 +1049,7 @@ def infer_strategy(
     # However, in case of ``object.__new__``, there is no ``cls`` as the first argument!
     #
     elif (
-        func.__name__ == "__new__"
-        and func != object.__new__  # pylint: disable=comparison-with-callable
+        func.__name__ == "__new__" and func != object.__new__  # pylint: disable=comparison-with-callable
     ):
         if len(parameters.keys()) > 0:
             # Remove the first parameter which points to the class.
@@ -1106,11 +1097,9 @@ def infer_strategy(
 
     if typed_args != parameter_set:
         raise TypeError(
-            
-                f"No search strategy could be inferred for the function: {func}; "
-                f"the following arguments are missing the type annotations: {list(parameter_set.difference(typed_args))};\n\n"
-                f"sorted typed_args was {sorted(typed_args)}, sorted parameter_set was {sorted(parameter_set)}"
-            
+            f"No search strategy could be inferred for the function: {func}; "
+            f"the following arguments are missing the type annotations: {list(parameter_set.difference(typed_args))};\n\n"
+            f"sorted typed_args was {sorted(typed_args)}, sorted parameter_set was {sorted(parameter_set)}"
         )
 
     checker = icontract._checkers.find_checker(func)
@@ -1246,9 +1235,9 @@ def _register_with_hypothesis(cls: Type[T]) -> None:
         # possibly other optimized data structures.
         # In those cases, we have to infer the strategy based on __new__ instead of __init__.
         new = cls.__new__
-        assert (
-            new is not None
-        ), f"Expected __new__ in {cls} if __init__ is a slot wrapper."
+        assert new is not None, (
+            f"Expected __new__ in {cls} if __init__ is a slot wrapper."
+        )
 
         # We have to add the ``a_type`` itself to a local namespace for forward references.
         # This is usually the case for the return value of ``__new__``.

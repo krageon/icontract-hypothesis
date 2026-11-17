@@ -29,6 +29,7 @@ def another_func(x: int) -> None:
 def yet_another_func(x: int, y: int) -> None:
     pass
 
+
 # pyicontract-hypothesis: disable
 def expected_to_be_ignored(x: int) -> None:
     pass

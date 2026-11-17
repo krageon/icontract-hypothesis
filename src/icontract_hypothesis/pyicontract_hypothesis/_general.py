@@ -257,11 +257,9 @@ def select_function_points(
 
                 if value not in ["enable", "disable"]:
                     errors.append(
-                        
-                            f"Unexpected directive on line {first_row}. "
-                            "Expected '# pyicontract-hypothesis: (disable|enable)', "
-                            f"but got: {line.strip()}"
-                        
+                        f"Unexpected directive on line {first_row}. "
+                        "Expected '# pyicontract-hypothesis: (disable|enable)', "
+                        f"but got: {line.strip()}"
                     )
                     continue
 
@@ -278,9 +276,7 @@ def select_function_points(
                         )
 
                 else:
-                    raise AssertionError(
-                        f"Unexpected value: {json.dumps(value)}"
-                    )
+                    raise AssertionError(f"Unexpected value: {json.dumps(value)}")
 
     exclude = extended_exclude
 
@@ -295,13 +291,11 @@ def select_function_points(
         incl_line_ranges = [incl for incl in include if isinstance(incl, _LineRange)]
         if len(incl_line_ranges) > 100:
             print(
-                
-                    f"There are much more --include items then expected: {len(incl_line_ranges)}. "
-                    "Please consider filing an issue by visiting this link: "
-                    "https://github.com/Parquery/icontract/issues/new"
-                    "?title=Use+interval+tree"
-                    f"&body=We+had+{len(incl_line_ranges)}+include+line+ranges+in+pyicontract-hypothesis."
-                
+                f"There are much more --include items then expected: {len(incl_line_ranges)}. "
+                "Please consider filing an issue by visiting this link: "
+                "https://github.com/Parquery/icontract/issues/new"
+                "?title=Use+interval+tree"
+                f"&body=We+had+{len(incl_line_ranges)}+include+line+ranges+in+pyicontract-hypothesis."
             )
 
         if len(incl_line_ranges) > 0:
@@ -344,13 +338,11 @@ def select_function_points(
         excl_line_ranges = [excl for excl in exclude if isinstance(excl, _LineRange)]
         if len(excl_line_ranges) > 100:
             print(
-                
-                    f"There are much more --exclude items then expected: {len(excl_line_ranges)}. "
-                    "Please consider filing an issue by visiting this link: "
-                    "https://github.com/Parquery/icontract/issues/new"
-                    "?title=Use+interval+tree"
-                    f"&body=We+had+{len(excl_line_ranges)}+exclude+line+ranges+in+pyicontract-hypothesis."
-                
+                f"There are much more --exclude items then expected: {len(excl_line_ranges)}. "
+                "Please consider filing an issue by visiting this link: "
+                "https://github.com/Parquery/icontract/issues/new"
+                "?title=Use+interval+tree"
+                f"&body=We+had+{len(excl_line_ranges)}+exclude+line+ranges+in+pyicontract-hypothesis."
             )
 
         if len(excl_line_ranges) > 0:

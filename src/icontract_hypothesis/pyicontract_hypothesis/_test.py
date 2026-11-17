@@ -1,4 +1,5 @@
 """Automatically test a Python file."""
+
 import argparse
 import collections
 import datetime
@@ -65,7 +66,7 @@ class SettingsParsing:
 
 
 def _parse_hypothesis_settings(
-    settings: Mapping[str, Any]
+    settings: Mapping[str, Any],
 ) -> Tuple[Optional[SettingsParsing], List[str]]:
     """
     Try to parse the setting as Hypothesis settings.
@@ -233,9 +234,11 @@ def _test_function_point(
         wrapped()
     except hypothesis.errors.FailedHealthCheck as err:
         return [
-            (f"Failed to test the function: "
-            f"{func.__name__} from {inspect.getfile(func)} "
-            f"due to the failed Hypothesis health check: {err}")
+            (
+                f"Failed to test the function: "
+                f"{func.__name__} from {inspect.getfile(func)} "
+                f"due to the failed Hypothesis health check: {err}"
+            )
         ]
 
     return []
@@ -257,10 +260,8 @@ def _inspect_test_function_point(
         strategy = icontract_hypothesis.infer_strategy(func=func)
     except Exception as error:
         errors.append(
-            
-                f"Inference of the search strategy failed for the function: {func}. "
-                f"The error was: {error}"
-            
+            f"Inference of the search strategy failed for the function: {func}. "
+            f"The error was: {error}"
         )
         return "", errors
 

@@ -138,11 +138,9 @@ class TestWithInferredStrategies(unittest.TestCase):
 
         # We must have -512 and +512 so that EXTENDED_ARG opcode is tested as well.
         @icontract.require(
-            lambda x, y: SOME_CONSTANT
-            < x - 512
-            < SOME_GLOBAL_CONST
-            < y + 512
-            < ANOTHER_CONSTANT
+            lambda x, y: (
+                SOME_CONSTANT < x - 512 < SOME_GLOBAL_CONST < y + 512 < ANOTHER_CONSTANT
+            )
         )
         def some_func(x: float, y: float) -> None:
             pass
@@ -359,8 +357,7 @@ class TestWithInferredStrategiesOnClasses(unittest.TestCase):
         )
 
         @hypothesis.given(a=hypothesis.strategies.from_type(A))
-        def test(a: A) -> None:
-            ...
+        def test(a: A) -> None: ...
 
         test()
 
@@ -770,8 +767,7 @@ class TestRepresentationOfCondition(unittest.TestCase):
             argument: int
 
         @icontract.require(lambda instructions: len(instructions) < 10)
-        def execute_instructions(instructions: List[Instruction]) -> Optional[int]:
-            ...
+        def execute_instructions(instructions: List[Instruction]) -> Optional[int]: ...
 
         strategy = icontract_hypothesis.infer_strategy(execute_instructions)
         self.assertEqual(
@@ -801,8 +797,7 @@ class TestRepresentationOfCondition(unittest.TestCase):
                 if instruction.operation == Operation.JMP
             )
         )
-        def execute_instructions(instructions: List[Instruction]) -> Optional[int]:
-            ...
+        def execute_instructions(instructions: List[Instruction]) -> Optional[int]: ...
 
         strategy = icontract_hypothesis.infer_strategy(execute_instructions)
         self.assertEqual(
@@ -816,12 +811,10 @@ fixed_dictionaries({'instructions': lists(builds(Instruction)).filter(lambda ins
         )
 
     def test_that_a_condition_as_function_renders_correctly(self) -> None:
-        def some_condition(x: int) -> bool:
-            ...
+        def some_condition(x: int) -> bool: ...
 
         @icontract.require(some_condition)
-        def some_func(x: int) -> None:
-            ...
+        def some_func(x: int) -> None: ...
 
         strategy = icontract_hypothesis.infer_strategy(some_func)
         self.assertEqual(

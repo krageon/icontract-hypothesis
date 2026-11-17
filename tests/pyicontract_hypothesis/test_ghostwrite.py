@@ -398,9 +398,7 @@ class TestGhostwrite(unittest.TestCase):
         expected_pth = (
             this_dir.parent.parent
             / "test_samples/pyicontract_hypothesis/expected_ghostwrites"
-            / (
-                f"for_{TestGhostwrite.test_non_bare_and_non_explicit.__name__}.py"
-            )
+            / (f"for_{TestGhostwrite.test_non_bare_and_non_explicit.__name__}.py")
         )
 
         expected = expected_pth.read_text()
